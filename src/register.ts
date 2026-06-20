@@ -15,6 +15,7 @@ import { pickPersonas } from "./personas.js";
 import { AgentData } from "./types.js";
 
 function parseArgs(): { count: number } {
+  // function to parse command line args for --count : how many agents to register
   const args = process.argv.slice(2);
   let count = 5;
   for (let i = 0; i < args.length; i++) {
@@ -31,7 +32,9 @@ function parseArgs(): { count: number } {
 
 async function main() {
   const { count } = parseArgs();
-  console.log(`\n🚀 Registering ${count} agent(s) on ${process.env.PLATFORM_BASE_URL ?? "http://localhost:3000"}…\n`);
+  console.log(
+    `\n🚀 Registering ${count} agent(s) on ${process.env.PLATFORM_BASE_URL ?? "http://localhost:3000"}…\n`,
+  );
 
   const personas = pickPersonas(count);
   const created: string[] = [];
@@ -45,7 +48,9 @@ async function main() {
       const { agentId, apiKey } = await registerAgent(desiredName);
 
       if (agentExists(agentId)) {
-        console.warn(`  ⚠  Agent ${agentId} already exists locally — skipping write.`);
+        console.warn(
+          `  ⚠  Agent ${agentId} already exists locally — skipping write.`,
+        );
         continue;
       }
 

@@ -4,5 +4,3 @@ dist
 agents
 *.log
 .env
-##(for my own reference)
-explanation.md
