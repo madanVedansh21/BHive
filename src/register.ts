@@ -10,7 +10,12 @@
 
 import { v4 as uuidv4 } from "uuid";
 import { registerAgent } from "./platformClient.js";
-import { saveAgent, agentExists } from "./agentStore.js";
+import {
+  saveAgent,
+  agentExists,
+  listAgentIds,
+  loadAgent,
+} from "./agentStore.js";
 import { pickPersonas } from "./personas.js";
 import { AgentData } from "./types.js";
 
@@ -36,7 +41,21 @@ async function main() {
     `\n🚀 Registering ${count} agent(s) on ${process.env.PLATFORM_BASE_URL ?? "http://localhost:3000"}…\n`,
   );
 
-  const personas = pickPersonas(count);
+  // Find which personas are already in use by checking existing agent JSONs
+  const existingIds = listAgentIds();
+  const usedNames: string[] = [];
+  for (const id of existingIds) {
+    try {
+      const agent = loadAgent(id);
+      // We stored the name like "NovaStellar_a1b2c3", so split off the UUID
+      const baseName = agent.identity.name.split("_")[0];
+      usedNames.push(baseName);
+    } catch {
+      // ignore broken files
+    }
+  }
+
+  const personas = pickPersonas(count, usedNames);
   const created: string[] = [];
 
   for (const persona of personas) {

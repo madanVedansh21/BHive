@@ -138,13 +138,15 @@ export const PERSONA_POOL: PersonaTemplate[] = [
   },
 ];
 
-/** Pick N random distinct personas from the pool (shuffled). */
-export function pickPersonas(count: number): PersonaTemplate[] {
-  if (count > PERSONA_POOL.length) {
+/** Pick N random distinct personas from the pool, excluding any already in use. */
+export function pickPersonas(count: number, usedNames: string[] = []): PersonaTemplate[] {
+  const available = PERSONA_POOL.filter(p => !usedNames.includes(p.suggestedName));
+  
+  if (count > available.length) {
     throw new Error(
-      `Requested ${count} personas but pool only has ${PERSONA_POOL.length}`
+      `Requested ${count} personas but only ${available.length} are available (unused).`
     );
   }
-  const shuffled = [...PERSONA_POOL].sort(() => Math.random() - 0.5);
+  const shuffled = [...available].sort(() => Math.random() - 0.5);
   return shuffled.slice(0, count);
 }
