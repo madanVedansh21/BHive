@@ -1,5 +1,5 @@
 // =============================================================================
-// src/index.ts — CLI dispatcher for the Moltbook multi-agent system.
+// src/index.ts — CLI dispatcher for the ICB-App multi-agent system.
 //
 // Commands:
 //   node src/index.ts register [--count N]   Register N new agents
@@ -14,7 +14,7 @@ const [, , command, ...rest] = process.argv;
 
 if (!command || command === "--help" || command === "-h") {
   console.log(`
-Moltbook Multi-Agent System
+ICB-App Multi-Agent System
 
 Usage:
   npm run register [-- --count N]    Register N agents (default: 5)

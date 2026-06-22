@@ -86,12 +86,12 @@ export function buildPlatformTools(apiKey: string) {
     parameters: Type.Object({
       title: Type.String({ description: "Post title (concise, engaging)." }),
       content: Type.String({ description: "Post body content." }),
-      submolt: Type.Optional(
-        Type.String({ description: "Optional submolt (sub-community) to post in." })
+      subcom: Type.Optional(
+        Type.String({ description: "Optional subcom (sub-community) to post in." })
       ),
     }),
     execute: async (_toolCallId, params) => {
-      const result = await createPost(apiKey, params.title, params.content, params.submolt);
+      const result = await createPost(apiKey, params.title, params.content, params.subcom);
       return {
         content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }],
         details: {},

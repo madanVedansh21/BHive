@@ -11,7 +11,7 @@ const BASE_URL = process.env.PLATFORM_BASE_URL ?? "http://localhost:3000";
 async function apiFetch<T>(
   path: string,
   apiKey: string | null,
-  options: RequestInit = {}
+  options: RequestInit = {},
 ): Promise<T> {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
@@ -29,7 +29,7 @@ async function apiFetch<T>(
   if (!response.ok) {
     const body = await response.text().catch(() => "(no body)");
     throw new Error(
-      `Platform API error [${response.status}] ${response.statusText} — ${path}: ${body}`
+      `Platform API error [${response.status}] ${response.statusText} — ${path}: ${body}`,
     );
   }
 
@@ -48,8 +48,10 @@ export interface RegisterResult {
   apiKey: string;
 }
 
-export async function registerAgent(desiredName: string): Promise<RegisterResult> {
-  return apiFetch<RegisterResult>("/auth/register", null, {
+export async function registerAgent(
+  desiredName: string,
+): Promise<RegisterResult> {
+  return apiFetch<RegisterResult>("/api/xx69salt69xx/auth/registeragent", null, {
     method: "POST",
     body: JSON.stringify({ desiredName }),
   });
@@ -63,14 +65,14 @@ export interface FeedPost {
   id: string;
   title: string;
   content: string;
-  submolt?: string;
+  subcom?: string;
   authorId: string;
   createdAt: string;
   voteScore?: number;
 }
 
 export async function getFeed(apiKey: string): Promise<FeedPost[]> {
-  return apiFetch<FeedPost[]>("/feed", apiKey);
+  return apiFetch<FeedPost[]>("/api/xx69salt69xx/feed", apiKey);
 }
 
 // ---------------------------------------------------------------------------
@@ -81,8 +83,11 @@ export interface PostDetail extends FeedPost {
   commentCount?: number;
 }
 
-export async function getPostDetail(apiKey: string, postId: string): Promise<PostDetail> {
-  return apiFetch<PostDetail>(`/posts/${postId}`, apiKey);
+export async function getPostDetail(
+  apiKey: string,
+  postId: string,
+): Promise<PostDetail> {
+  return apiFetch<PostDetail>(`/api/xx69salt69xx/posts/${postId}`, apiKey);
 }
 
 export interface Comment {
@@ -94,8 +99,11 @@ export interface Comment {
   createdAt: string;
 }
 
-export async function getPostComments(apiKey: string, postId: string): Promise<Comment[]> {
-  return apiFetch<Comment[]>(`/posts/${postId}/comments`, apiKey);
+export async function getPostComments(
+  apiKey: string,
+  postId: string,
+): Promise<Comment[]> {
+  return apiFetch<Comment[]>(`/api/xx69salt69xx/posts/${postId}/comments`, apiKey);
 }
 
 export interface CreatePostResult {
@@ -106,11 +114,11 @@ export async function createPost(
   apiKey: string,
   title: string,
   content: string,
-  submolt?: string
+  subcom?: string,
 ): Promise<CreatePostResult> {
-  return apiFetch<CreatePostResult>("/posts", apiKey, {
+  return apiFetch<CreatePostResult>("/api/xx69salt69xx/posts", apiKey, {
     method: "POST",
-    body: JSON.stringify({ title, content, submolt }),
+    body: JSON.stringify({ title, content, subcom }),
   });
 }
 
@@ -122,9 +130,9 @@ export async function createComment(
   apiKey: string,
   postId: string,
   content: string,
-  parentCommentId?: string
+  parentCommentId?: string,
 ): Promise<CreateCommentResult> {
-  return apiFetch<CreateCommentResult>(`/posts/${postId}/comments`, apiKey, {
+  return apiFetch<CreateCommentResult>(`/api/xx69salt69xx/posts/${postId}/comments`, apiKey, {
     method: "POST",
     body: JSON.stringify({ content, parentCommentId }),
   });
@@ -135,9 +143,9 @@ export type VoteDirection = "up" | "down" | "none";
 export async function vote(
   apiKey: string,
   postId: string,
-  direction: VoteDirection
+  direction: VoteDirection,
 ): Promise<void> {
-  return apiFetch<void>(`/posts/${postId}/vote`, apiKey, {
+  return apiFetch<void>(`/api/xx69salt69xx/posts/${postId}/vote`, apiKey, {
     method: "POST",
     body: JSON.stringify({ direction }),
   });
@@ -156,12 +164,17 @@ export interface PlatformNotification {
   createdAt: string;
 }
 
-export async function getMyNotifications(apiKey: string): Promise<PlatformNotification[]> {
-  return apiFetch<PlatformNotification[]>("/notifications", apiKey);
+export async function getMyNotifications(
+  apiKey: string,
+): Promise<PlatformNotification[]> {
+  return apiFetch<PlatformNotification[]>("/api/xx69salt69xx/notifications", apiKey);
 }
 
-export async function ackNotification(apiKey: string, notificationId: string): Promise<void> {
-  return apiFetch<void>(`/notifications/${notificationId}/ack`, apiKey, {
+export async function ackNotification(
+  apiKey: string,
+  notificationId: string,
+): Promise<void> {
+  return apiFetch<void>(`/api/xx69salt69xx/notifications/${notificationId}/ack`, apiKey, {
     method: "POST",
   });
 }

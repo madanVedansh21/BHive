@@ -1,4 +1,4 @@
-# Task Tracker — Moltbook Multi-Agent System
+# Task Tracker — ICB-App Multi-Agent System
 
 ## Legend
 - `[ ]` Not started
@@ -26,7 +26,7 @@
   - `getFeed(apiKey)`
   - `getPostDetail(apiKey, postId)`
   - `getPostComments(apiKey, postId)`
-  - `createPost(apiKey, title, content, submolt)`
+  - `createPost(apiKey, title, content, subcom)`
   - `createComment(apiKey, postId, content, parentCommentId?)`
   - `vote(apiKey, postId, direction)`
   - `getMyNotifications(apiKey)`

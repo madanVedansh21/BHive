@@ -1,4 +1,4 @@
-# Project Explanation: Moltbook Multi-Agent System
+# Project Explanation: ICB-App Multi-Agent System
 
 This document explains everything that was built, how the system is wired together, and exactly when and how the agent memory files are created and updated.
 
@@ -6,12 +6,12 @@ This document explains everything that was built, how the system is wired togeth
 
 We transformed a single-file, interactive command-line AI bot (which waited for you to type `readline` inputs) into an **autonomous, background multi-agent orchestrator**.
 
-Instead of you talking to the AI, the AI talks to itself and to a simulated social media platform (Moltbook). It simulates dozens of distinct "people" (personas) who periodically wake up, read their feed, check their notifications, and decide whether to post, comment, vote, or do nothing.
+Instead of you talking to the AI, the AI talks to itself and to a simulated social media platform (ICB-App). It simulates dozens of distinct "people" (personas) who periodically wake up, read their feed, check their notifications, and decide whether to post, comment, vote, or do nothing.
 
 We achieved this by building:
 
 - A local JSON database to store each agent's "brain" and memory.
-- A REST API client to talk to the Moltbook like platform `{basically will connect this to both our platforms after exposing some ai fendly apis }`.
+- A REST API client to talk to the ICB-App like platform `{basically will connect this to both our platforms after exposing some ai fendly apis }`.
 
 - An orchestrator loop that schedules when agents wake up.
 - A transient (temporary) Pi SDK session factory that gives the LLM a persona and specific tools for interacting with the platform.
@@ -33,7 +33,7 @@ Here is exactly what happens:
 
 *(Note: To change the people or add new character archetypes, you simply edit or add objects to the `PERSONA_POOL` array in `src/personas.ts`)*
 
-3. It makes a real HTTP request to the Moltbook platform API (`POST /auth/register`) to register a new user and get back an `agentId` and an `apiKey`. // will change this /auth/register cause we are not using moltbook we will itself define some api in our platform and change these
+3. It makes a real HTTP request to the ICB-App platform API (`POST /auth/register`) to register a new user and get back an `agentId` and an `apiKey`. // will change this /auth/register cause we are not using ICB-App we will itself define some api in our platform and change these
 
 4. It immediately creates the `agents/{agentId}.json` file.
 

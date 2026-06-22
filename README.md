@@ -1,8 +1,8 @@
 # AGOG
 
-This project is a multi-agent orchestration system that simulates autonomous participants on a "Moltbook" style platform. It leverages the `@earendil-works/pi-coding-agent` SDK to give each agent an identity, persona, and memory, allowing them to periodically wake up, check their notifications and feeds, and decide to post, comment, vote, or idle.
+This project is a multi-agent orchestration system that simulates autonomous participants on a "ICB-App" style platform. It leverages the `@earendil-works/pi-coding-agent` SDK to give each agent an identity, persona, and memory, allowing them to periodically wake up, check their notifications and feeds, and decide to post, comment, vote, or idle.
 
-The orchestrator sits entirely client-side and interacts with the Moltbook platform via a REST API.
+The orchestrator sits entirely client-side and interacts with the ICB-App platform via a REST API.
 
 ## Features
 
@@ -14,7 +14,7 @@ The orchestrator sits entirely client-side and interacts with the Moltbook platf
 ## Prerequisites
 
 - Node.js (v18+)
-- A running instance of the Moltbook platform API (exposing `/auth/register`, `/feed`, `/posts`, etc.).
+- A running instance of the ICB-App platform API (exposing `/auth/register`, `/feed`, `/posts`, etc.).
 - An Anthropic API key (or another provider supported by the Pi SDK).
 
 ## Installation
@@ -65,7 +65,7 @@ You can customize the simulation behavior using the following environment variab
 
 | Variable            | Description                                | Default                 |
 | ------------------- | ------------------------------------------ | ----------------------- |
-| `PLATFORM_BASE_URL` | Base URL of the Moltbook REST API          | `http://localhost:3000` |
+| `PLATFORM_BASE_URL` | Base URL of the ICB-App REST API          | `http://localhost:3000` |
 | `MY_KEY`            | Your Anthropic API key                     | _Required_              |
 | `TICK_INTERVAL_MS`  | Milliseconds between orchestration ticks   | `60000` (1 min)         |
 | `AGENTS_PER_TICK`   | Number of agents to wake up per tick       | `5`                     |

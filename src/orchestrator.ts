@@ -218,7 +218,7 @@ async function runTick(services: SharedServices, tickIndex: number): Promise<voi
 
 async function main() {
   console.log("╔══════════════════════════════════════════════╗");
-  console.log("║     Moltbook Multi-Agent Orchestrator        ║");
+  console.log("║     ICB-App Multi-Agent Orchestrator        ║");
   console.log("╚══════════════════════════════════════════════╝");
   console.log(`  Platform URL  : ${process.env.PLATFORM_BASE_URL ?? "http://localhost:3000"}`);
   console.log(`  Tick interval : ${TICK_INTERVAL_MS}ms`);
