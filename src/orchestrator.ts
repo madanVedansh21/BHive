@@ -24,7 +24,8 @@ import {
 import pLimit from "p-limit";
 import { loadAgent, listAgentIds, saveAgent } from "./agentStore.js";
 import { runAgentTick } from "./agentSession.js";
-import { AgentData, SharedServices, ToolCallRecord } from "./types.js";
+import { AgentData, SharedServices } from "./types.js";
+import { loadStrategy } from "./improve/registry.js";
 
 // ---------------------------------------------------------------------------
 // Configuration
@@ -36,110 +37,6 @@ const CONCURRENCY_LIMIT = parseInt(process.env.CONCURRENCY_LIMIT ?? "3", 10);
 const POST_COOLDOWN_MS = parseInt(process.env.POST_COOLDOWN_MS ?? "300000", 10);
 const MODEL_PROVIDER = process.env.MODEL_PROVIDER ?? "anthropic";
 const MODEL_ID = process.env.MODEL_ID ?? "claude-opus-4-5";
-
-// ---------------------------------------------------------------------------
-// Memory update helper
-// ---------------------------------------------------------------------------
-
-function applyToolCallsToMemory(
-  agentData: AgentData,
-  toolCallRecords: ToolCallRecord[]
-): AgentData {
-  const now = new Date().toISOString();
-  let postCooldownSet = false;
-
-  for (const record of toolCallRecords) {
-    if (record.isError) continue;
-
-    if (record.toolName === "create_post") {
-      const result = record.result as { content?: Array<{ text?: string }> };
-      const text = result?.content?.[0]?.text ?? "";
-      let postId = "unknown";
-      try {
-        const parsed = JSON.parse(text);
-        postId = parsed.postId ?? postId;
-      } catch {
-        // fallback
-      }
-      const args = record.args as { title?: string };
-      agentData.memory.postedByMe.push({
-        postId,
-        title: args.title ?? "(untitled)",
-        timestamp: now,
-      });
-      postCooldownSet = true;
-    }
-
-    if (record.toolName === "create_comment") {
-      const result = record.result as { content?: Array<{ text?: string }> };
-      const text = result?.content?.[0]?.text ?? "";
-      let commentId = "unknown";
-      try {
-        const parsed = JSON.parse(text);
-        commentId = parsed.commentId ?? commentId;
-      } catch {
-        // fallback
-      }
-      const args = record.args as { postId?: string };
-      agentData.memory.commentedByMe.push({
-        commentId,
-        postId: args.postId ?? "unknown",
-        timestamp: now,
-      });
-    }
-
-    if (record.toolName === "get_my_notifications") {
-      // Notifications are always fetched fresh — we do not persist feed data.
-      // But we can sync any new notification IDs to local store for ack tracking.
-      const result = record.result as { content?: Array<{ text?: string }> };
-      const text = result?.content?.[0]?.text ?? "[]";
-      try {
-        const notifications = JSON.parse(text) as Array<{
-          id: string;
-          type: string;
-          postId?: string;
-          fromAgentId?: string;
-          read?: boolean;
-        }>;
-        // Merge into local notification list (upsert by id)
-        const existing = new Map(agentData.memory.notifications.map((n) => [n.id, n]));
-        for (const n of notifications) {
-          existing.set(n.id, {
-            id: n.id,
-            type: n.type,
-            postId: n.postId,
-            fromAgentId: n.fromAgentId,
-            read: n.read ?? false,
-          });
-        }
-        agentData.memory.notifications = Array.from(existing.values());
-      } catch {
-        // ignore parse errors
-      }
-    }
-
-    if (record.toolName === "ack_notification") {
-      const args = record.args as { notificationId?: string };
-      const id = args.notificationId;
-      if (id) {
-        const n = agentData.memory.notifications.find((x) => x.id === id);
-        if (n) n.read = true;
-      }
-    }
-  }
-
-  // Set post cooldown if agent created a post this tick
-  if (postCooldownSet) {
-    agentData.identity.postCooldownUntil = Date.now() + POST_COOLDOWN_MS;
-    console.log(
-      `  [${agentData.identity.name}] Post cooldown set until ${new Date(
-        agentData.identity.postCooldownUntil
-      ).toISOString()}`
-    );
-  }
-
-  return agentData;
-}
 
 // ---------------------------------------------------------------------------
 // Tick execution
@@ -187,6 +84,9 @@ async function runTick(services: SharedServices, tickIndex: number): Promise<voi
   // Run with concurrency cap
   const limit = pLimit(CONCURRENCY_LIMIT);
 
+  // Loaded once per tick — accepted improvement swaps apply from the next tick
+  const memoryStrategy = loadStrategy("memory");
+
   const tasks = selected.map((agentId) =>
     limit(async () => {
       let agentData: AgentData;
@@ -199,7 +99,22 @@ async function runTick(services: SharedServices, tickIndex: number): Promise<voi
 
       try {
         const toolCallRecords = await runAgentTick(agentData, services);
-        agentData = applyToolCallsToMemory(agentData, toolCallRecords);
+        const patch = memoryStrategy.applyTickToMemory(
+          agentData.memory,
+          toolCallRecords
+        );
+        agentData.memory = patch.memory;
+
+        // Cooldown policy stays orchestrator-owned (env-driven), strategy stays pure
+        if (patch.postCooldownSet) {
+          agentData.identity.postCooldownUntil = Date.now() + POST_COOLDOWN_MS;
+          console.log(
+            `  [${agentData.identity.name}] Post cooldown set until ${new Date(
+              agentData.identity.postCooldownUntil
+            ).toISOString()}`
+          );
+        }
+
         saveAgent(agentData);
         console.log(`  [${agentData.identity.name}] Memory updated & saved.`);
       } catch (err) {

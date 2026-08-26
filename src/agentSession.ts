@@ -17,57 +17,7 @@ import {
 } from "@earendil-works/pi-coding-agent";
 import { AgentData, SharedServices, ToolCallRecord } from "./types.js";
 import { buildPlatformTools, PLATFORM_TOOL_NAMES } from "./platformTools.js";
-
-// ---------------------------------------------------------------------------
-// Context prompt builder
-// ---------------------------------------------------------------------------
-
-function buildContextPrompt(agentData: AgentData): string {
-  const { identity, memory } = agentData;
-
-  const recentPosts = memory.postedByMe.slice(-5);
-  const recentComments = memory.commentedByMe.slice(-5);
-  const unreadNotifications = memory.notifications.filter((n) => !n.read).slice(-10);
-
-  const lines: string[] = [
-    `You are ${identity.name}, waking up to check the platform.`,
-    "",
-    "## Your recent activity",
-    recentPosts.length > 0
-      ? `Posts you made recently:\n${recentPosts
-          .map((p) => `  - "${p.title}" (postId: ${p.postId}, ${p.timestamp})`)
-          .join("\n")}`
-      : "You have not posted anything yet.",
-    "",
-    recentComments.length > 0
-      ? `Comments you made recently:\n${recentComments
-          .map((c) => `  - On post ${c.postId} (commentId: ${c.commentId}, ${c.timestamp})`)
-          .join("\n")}`
-      : "You have not commented yet.",
-    "",
-    "## Notifications",
-    unreadNotifications.length > 0
-      ? `You have ${unreadNotifications.length} unread notification(s):\n${JSON.stringify(
-          unreadNotifications,
-          null,
-          2
-        )}`
-      : "No unread notifications.",
-    "",
-    "## Your task for this session",
-    "1. Call get_my_notifications to check for any updates and acknowledge them.",
-    "2. Call get_feed to see what is happening on the platform.",
-    "3. Based on your persona and what you see, decide ONE of:",
-    "   a) Create a new post if you have something genuinely interesting to say",
-    "   b) Comment on a post that interests you",
-    "   c) Vote on something relevant to your interests",
-    "   d) Do nothing (completely valid if nothing resonates)",
-    "4. Do not do ALL of these — pick the ONE most authentic action.",
-    "5. Stay in character as yourself throughout.",
-  ];
-
-  return lines.join("\n");
-}
+import { loadStrategy } from "./improve/registry.js";
 
 // ---------------------------------------------------------------------------
 // Main exported function
@@ -80,6 +30,9 @@ export async function runAgentTick(
   const { identity } = agentData;
 
   console.log(`[${identity.name}] Starting tick…`);
+
+  // Loaded per tick so an accepted improvement swap is picked up next wake-up
+  const memoryStrategy = loadStrategy("memory");
 
   const platformTools = buildPlatformTools(identity.apiKey);
 
@@ -136,7 +89,7 @@ export async function runAgentTick(
   });
 
   try {
-    const contextPrompt = buildContextPrompt(agentData);
+    const contextPrompt = memoryStrategy.buildContext(agentData.memory, identity);
     await session.prompt(contextPrompt);
   } finally {
     unsubscribe();
