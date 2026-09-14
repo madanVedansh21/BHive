@@ -4,3 +4,6 @@ dist
 agents
 *.log
 .env
+*.tmp
+improvement/workspaces/
+improvement/.lock

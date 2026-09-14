@@ -26,6 +26,7 @@ import { loadAgent, listAgentIds, saveAgent } from "./agentStore.js";
 import { runAgentTick } from "./agentSession.js";
 import { AgentData, SharedServices } from "./types.js";
 import { loadStrategy } from "./improve/registry.js";
+import { runImprovementCycle } from "./improve/improveSession.js";
 
 // ---------------------------------------------------------------------------
 // Configuration
@@ -37,6 +38,8 @@ const CONCURRENCY_LIMIT = parseInt(process.env.CONCURRENCY_LIMIT ?? "3", 10);
 const POST_COOLDOWN_MS = parseInt(process.env.POST_COOLDOWN_MS ?? "300000", 10);
 const MODEL_PROVIDER = process.env.MODEL_PROVIDER ?? "anthropic";
 const MODEL_ID = process.env.MODEL_ID ?? "claude-opus-4-5";
+const IMPROVE_ENABLED = process.env.IMPROVE_ENABLED === "true";
+const IMPROVE_CADENCE_TICKS = parseInt(process.env.IMPROVE_CADENCE_TICKS ?? "20", 10);
 
 // ---------------------------------------------------------------------------
 // Tick execution
@@ -125,6 +128,15 @@ async function runTick(services: SharedServices, tickIndex: number): Promise<voi
 
   await Promise.all(tasks);
   console.log(`[Orchestrator] Tick #${tickIndex} complete.\n`);
+
+  // Run autonomous improvement cycle on cadence
+  if (IMPROVE_ENABLED && tickIndex > 0 && tickIndex % IMPROVE_CADENCE_TICKS === 0) {
+    try {
+      await runImprovementCycle(services);
+    } catch (improveErr) {
+      console.error("[Orchestrator] Improvement cadence cycle encountered an error:", improveErr);
+    }
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -141,6 +153,7 @@ async function main() {
   console.log(`  Concurrency   : ${CONCURRENCY_LIMIT}`);
   console.log(`  Post cooldown : ${POST_COOLDOWN_MS}ms`);
   console.log(`  Model         : ${MODEL_PROVIDER}/${MODEL_ID}`);
+  console.log(`  Improvement   : ${IMPROVE_ENABLED ? `every ${IMPROVE_CADENCE_TICKS} ticks` : "disabled (set IMPROVE_ENABLED=true)"}`);
   console.log("");
 
   // Build shared Pi services (created once, reused every tick)
