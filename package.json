@@ -10,6 +10,7 @@
     "orchestrate": "node --require ts-node/register src/orchestrator.ts",
     "start": "node --require ts-node/register src/index.ts",
     "eval": "node --require ts-node/register src/improve/evalRunner.ts",
+    "improve": "node --require ts-node/register src/improve/improveSession.ts",
     "rollback": "node --require ts-node/register src/improve/promoter.ts rollback"
   },
   "keywords": [],
