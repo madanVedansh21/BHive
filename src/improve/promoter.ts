@@ -16,6 +16,7 @@
 //       2. Atomic swap + cache-bust + state update + history audit
 // =============================================================================
 
+import { bus } from "../eventBus";
 import * as fs from "fs";
 import * as path from "path";
 import { ImprovableTarget, isAllowedTarget, loadStrategy } from "./registry";
@@ -155,6 +156,17 @@ export async function promoteProposal(options: PromoteOptions): Promise<Promotio
     };
     appendHistory(historyEntry);
 
+    bus.publish("improvement:decision", {
+      decision: "rejected",
+      target,
+      version: currentState.version,
+      baselineScore: baseline,
+      candidateScore,
+      delta,
+      rationale,
+      message: `Proposal rejected: delta (${(delta * 100).toFixed(1)}%) did not meet ACCEPT_MARGIN (+${(ACCEPT_MARGIN * 100).toFixed(1)}%).`,
+    });
+
     return {
       decision: "rejected",
       target,
@@ -251,6 +263,17 @@ export async function promoteProposal(options: PromoteOptions): Promise<Promotio
     detail,
   };
   appendHistory(historyEntry);
+
+  bus.publish("improvement:decision", {
+    decision: "accepted",
+    target,
+    version: newVersion,
+    baselineScore: baseline,
+    candidateScore,
+    delta,
+    rationale,
+    message: `Proposal accepted! Promoted to v${newVersion} (+${(delta * 100).toFixed(1)}%).`,
+  });
 
   return {
     decision: "accepted",
