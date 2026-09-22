@@ -1,8 +1,8 @@
 // =============================================================================
 // src/orchestrator.ts — Tick-based multi-agent scheduler.
 //
-// Usage:
-//   npm run orchestrate
+// Usage (standalone): npm run orchestrate
+// Usage (with UI):    npm run ui  (uiServer.ts calls startOrchestrator())
 //
 // Environment variables:
 //   PLATFORM_BASE_URL     Base URL of the platform API  (default: http://localhost:3000)
@@ -27,6 +27,7 @@ import { runAgentTick } from "./agentSession.js";
 import { AgentData, SharedServices } from "./types.js";
 import { loadStrategy } from "./improve/registry.js";
 import { runImprovementCycle } from "./improve/improveSession.js";
+import { bus } from "./eventBus";
 
 // ---------------------------------------------------------------------------
 // Configuration
@@ -41,11 +42,22 @@ const MODEL_ID = process.env.MODEL_ID ?? "claude-opus-4-5";
 const IMPROVE_ENABLED = process.env.IMPROVE_ENABLED === "true";
 const IMPROVE_CADENCE_TICKS = parseInt(process.env.IMPROVE_CADENCE_TICKS ?? "20", 10);
 
+// Pause flag — toggled by UI commands via uiServer
+let paused = false;
+export function setOrchestratorPaused(value: boolean): void { paused = value; }
+export function isOrchestratorPaused(): boolean { return paused; }
+
 // ---------------------------------------------------------------------------
 // Tick execution
 // ---------------------------------------------------------------------------
 
 async function runTick(services: SharedServices, tickIndex: number): Promise<void> {
+  if (paused) {
+    console.log(`[Orchestrator] Tick #${tickIndex} skipped — paused.`);
+    return;
+  }
+
+  const tickStart = Date.now();
   console.log(`\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
   console.log(`[Orchestrator] Tick #${tickIndex} at ${new Date().toISOString()}`);
 
@@ -55,7 +67,6 @@ async function runTick(services: SharedServices, tickIndex: number): Promise<voi
     return;
   }
 
-  // Filter by cooldown
   const now = Date.now();
   const eligible = allIds.filter((id) => {
     try {
@@ -72,7 +83,6 @@ async function runTick(services: SharedServices, tickIndex: number): Promise<voi
     return;
   }
 
-  // Randomly sample up to AGENTS_PER_TICK agents
   const shuffled = eligible.sort(() => Math.random() - 0.5);
   const selected = shuffled.slice(0, AGENTS_PER_TICK);
 
@@ -84,10 +94,18 @@ async function runTick(services: SharedServices, tickIndex: number): Promise<voi
     console.log(`  • ${name} (${id})`);
   });
 
-  // Run with concurrency cap
-  const limit = pLimit(CONCURRENCY_LIMIT);
+  // Emit tick start event
+  bus.publish("orchestrator:tick_start", {
+    tickIndex,
+    selectedAgents: selected.map((id) => {
+      try { return { agentId: id, name: loadAgent(id).identity.name }; }
+      catch { return { agentId: id, name: id }; }
+    }),
+    eligibleCount: eligible.length,
+    totalCount: allIds.length,
+  });
 
-  // Loaded once per tick — accepted improvement swaps apply from the next tick
+  const limit = pLimit(CONCURRENCY_LIMIT);
   const memoryStrategy = loadStrategy("memory");
 
   const tasks = selected.map((agentId) =>
@@ -101,14 +119,13 @@ async function runTick(services: SharedServices, tickIndex: number): Promise<voi
       }
 
       try {
-        const toolCallRecords = await runAgentTick(agentData, services);
+        const toolCallRecords = await runAgentTick(agentData, services, tickIndex);
         const patch = memoryStrategy.applyTickToMemory(
           agentData.memory,
           toolCallRecords
         );
         agentData.memory = patch.memory;
 
-        // Cooldown policy stays orchestrator-owned (env-driven), strategy stays pure
         if (patch.postCooldownSet) {
           agentData.identity.postCooldownUntil = Date.now() + POST_COOLDOWN_MS;
           console.log(
@@ -120,6 +137,15 @@ async function runTick(services: SharedServices, tickIndex: number): Promise<voi
 
         saveAgent(agentData);
         console.log(`  [${agentData.identity.name}] Memory updated & saved.`);
+
+        // Emit session end
+        bus.publish("agent:session_end", {
+          agentId: agentData.identity.agentId,
+          name: agentData.identity.name,
+          tickIndex,
+          toolCallCount: toolCallRecords.length,
+          memory: agentData.memory,
+        });
       } catch (err) {
         console.error(`  [${agentData.identity.name}] Tick failed:`, err);
       }
@@ -127,9 +153,13 @@ async function runTick(services: SharedServices, tickIndex: number): Promise<voi
   );
 
   await Promise.all(tasks);
+
+  const durationMs = Date.now() - tickStart;
   console.log(`[Orchestrator] Tick #${tickIndex} complete.\n`);
 
-  // Run autonomous improvement cycle on cadence
+  // Emit tick end
+  bus.publish("orchestrator:tick_end", { tickIndex, durationMs });
+
   if (IMPROVE_ENABLED && tickIndex > 0 && tickIndex % IMPROVE_CADENCE_TICKS === 0) {
     try {
       await runImprovementCycle(services);
@@ -140,10 +170,10 @@ async function runTick(services: SharedServices, tickIndex: number): Promise<voi
 }
 
 // ---------------------------------------------------------------------------
-// Entry point
+// Exported entry point (called by uiServer or directly)
 // ---------------------------------------------------------------------------
 
-async function main() {
+export async function startOrchestrator(): Promise<void> {
   console.log("╔══════════════════════════════════════════════╗");
   console.log("║     ICB-App Multi-Agent Orchestrator        ║");
   console.log("╚══════════════════════════════════════════════╝");
@@ -156,7 +186,6 @@ async function main() {
   console.log(`  Improvement   : ${IMPROVE_ENABLED ? `every ${IMPROVE_CADENCE_TICKS} ticks` : "disabled (set IMPROVE_ENABLED=true)"}`);
   console.log("");
 
-  // Build shared Pi services (created once, reused every tick)
   const authStorage = AuthStorage.create(
     `${process.cwd()}/.pi/agent/auth.json`
   );
@@ -169,7 +198,6 @@ async function main() {
     `${process.cwd()}/.pi/agent/models.json`
   );
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const model = (getModel as any)(MODEL_PROVIDER, MODEL_ID) as ReturnType<typeof getModel> | null;
   if (!model) {
     throw new Error(
@@ -189,10 +217,19 @@ async function main() {
     settingsManager,
   };
 
+  // Emit started event
+  bus.publish("orchestrator:started", {
+    tickIntervalMs: TICK_INTERVAL_MS,
+    agentsPerTick: AGENTS_PER_TICK,
+    concurrencyLimit: CONCURRENCY_LIMIT,
+    improvementEnabled: IMPROVE_ENABLED,
+    improveCadenceTicks: IMPROVE_CADENCE_TICKS,
+    platformBaseUrl: process.env.PLATFORM_BASE_URL ?? "http://localhost:3000",
+  });
+
   let tickIndex = 0;
   let running = true;
 
-  // Graceful shutdown
   const shutdown = () => {
     console.log("\n[Orchestrator] Shutdown signal received. Stopping after current tick…");
     running = false;
@@ -200,10 +237,8 @@ async function main() {
   process.on("SIGINT", shutdown);
   process.on("SIGTERM", shutdown);
 
-  // Run first tick immediately
   await runTick(services, tickIndex++);
 
-  // Then schedule subsequent ticks
   const intervalHandle = setInterval(async () => {
     if (!running) {
       clearInterval(intervalHandle);
@@ -218,7 +253,13 @@ async function main() {
   );
 }
 
-main().catch((err) => {
-  console.error("[Orchestrator] Fatal error:", err);
-  process.exit(1);
-});
+// ---------------------------------------------------------------------------
+// Standalone CLI entry point (npm run orchestrate)
+// ---------------------------------------------------------------------------
+
+if (require.main === module) {
+  startOrchestrator().catch((err) => {
+    console.error("[Orchestrator] Fatal error:", err);
+    process.exit(1);
+  });
+}

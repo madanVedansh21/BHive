@@ -13,6 +13,7 @@
 //   5. Releases lockfile on completion
 // =============================================================================
 
+import { bus } from "../eventBus";
 import * as path from "path";
 import * as fs from "fs";
 import {
@@ -142,6 +143,8 @@ export async function runImprovementCycle(services?: SharedServices): Promise<vo
     console.log("[Improvement] Another improvement session is currently running. Skipping.");
     return;
   }
+
+  bus.publish("improvement:session_start", { target: "memory" });
 
   const activeServices = services ?? createImprovementServices();
   const improveTools = buildImproveTools();
