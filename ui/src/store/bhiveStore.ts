@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { BHiveEvent, AgentSnapshot, Panel, InteractionEdge } from '../types'
+import { BHiveEvent, AgentSnapshot, Panel, InteractionEdge, CommandLogEntry } from '../types'
 
 interface OrchestratorConfig {
   tickIntervalMs: number
@@ -75,6 +75,13 @@ interface BHiveState {
   // Interaction graph
   interactions: InteractionEdge[]
 
+  // Command Runner
+  commands: CommandLogEntry[]
+  activeCommandId: string | null
+  executeCommand: (cmd: string, args?: string[], raw?: string) => void
+  killCommand: (commandId: string) => void
+  clearCommands: () => void
+
   // WebSocket send
   wsSend: ((msg: object) => void) | null
   setWsSend: (fn: (msg: object) => void) => void
@@ -122,6 +129,30 @@ export const useBHiveStore = create<BHiveState>((set, get) => ({
   lastDecision: null,
 
   interactions: [],
+
+  commands: [],
+  activeCommandId: null,
+  executeCommand: (cmd, args, raw) => {
+    const wsSend = get().wsSend
+    if (!wsSend) return
+    const commandId = `cmd_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`
+    wsSend({
+      type: 'command:exec',
+      commandId,
+      cmd,
+      args,
+      raw,
+    })
+  },
+  killCommand: (commandId) => {
+    const wsSend = get().wsSend
+    if (!wsSend) return
+    wsSend({
+      type: 'command:kill',
+      commandId,
+    })
+  },
+  clearCommands: () => set({ commands: [] }),
 
   wsSend: null,
   setWsSend: (fn) => set({ wsSend: fn }),
@@ -226,6 +257,46 @@ export const useBHiveStore = create<BHiveState>((set, get) => ({
           return { events, improvementActive: true }
         case 'improvement:decision': {
           return { events, improvementActive: false, lastDecision: event }
+        }
+        case 'command:started': {
+          const p = event.payload as { commandId: string; cmd: string; label: string; startedAt: string }
+          const newEntry: CommandLogEntry = {
+            commandId: p.commandId,
+            cmd: p.cmd,
+            label: p.label,
+            startedAt: p.startedAt,
+            output: '',
+            status: 'running',
+          }
+          return {
+            events,
+            commands: [newEntry, ...state.commands].slice(0, 50),
+            activeCommandId: p.commandId,
+          }
+        }
+        case 'command:output': {
+          const p = event.payload as { commandId: string; stream: 'stdout' | 'stderr'; text: string }
+          const commands = state.commands.map((c) =>
+            c.commandId === p.commandId
+              ? { ...c, output: c.output + p.text }
+              : c
+          )
+          return { events, commands }
+        }
+        case 'command:ended': {
+          const p = event.payload as { commandId: string; exitCode: number; durationMs: number }
+          const commands = state.commands.map((c) =>
+            c.commandId === p.commandId
+              ? {
+                  ...c,
+                  status: (p.exitCode === 0 ? 'completed' : 'failed') as 'completed' | 'failed',
+                  exitCode: p.exitCode,
+                  durationMs: p.durationMs,
+                }
+              : c
+          )
+          const activeCommandId = state.activeCommandId === p.commandId ? null : state.activeCommandId
+          return { events, commands, activeCommandId }
         }
         default:
           return { events }

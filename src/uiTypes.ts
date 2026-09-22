@@ -19,7 +19,10 @@ export type BHiveEventType =
   | "improvement:session_start"
   | "improvement:proposal_submitted"
   | "improvement:sandbox_result"
-  | "improvement:decision";
+  | "improvement:decision"
+  | "command:started"
+  | "command:output"
+  | "command:ended";
 
 export interface BHiveEvent<T = unknown> {
   id: string;
@@ -119,6 +122,25 @@ export interface ImprovementDecisionPayload {
   message: string;
 }
 
+export interface CommandStartedPayload {
+  commandId: string;
+  cmd: string;
+  label: string;
+  startedAt: string;
+}
+
+export interface CommandOutputPayload {
+  commandId: string;
+  stream: "stdout" | "stderr";
+  text: string;
+}
+
+export interface CommandEndedPayload {
+  commandId: string;
+  exitCode: number;
+  durationMs: number;
+}
+
 // ---------------------------------------------------------------------------
 // WebSocket message types (client → server commands)
 // ---------------------------------------------------------------------------
@@ -127,4 +149,6 @@ export type UICommand =
   | { type: "orchestrator:pause" }
   | { type: "orchestrator:resume" }
   | { type: "improvement:trigger"; target: string }
-  | { type: "improvement:rollback"; target: string };
+  | { type: "improvement:rollback"; target: string }
+  | { type: "command:exec"; commandId: string; cmd: string; args?: string[]; raw?: string }
+  | { type: "command:kill"; commandId: string };

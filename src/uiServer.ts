@@ -23,6 +23,7 @@ import { listAgentIds, loadAgent } from "./agentStore";
 import { getState } from "./improve/promoter";
 import { rollbackStrategy } from "./improve/promoter";
 import { runImprovementCycle } from "./improve/improveSession";
+import { executeCommand, killCommand, getActiveCommands } from "./commandRunner";
 
 // ---------------------------------------------------------------------------
 // Configuration
@@ -135,6 +136,11 @@ export async function startUIServer(): Promise<void> {
     res.json(entries.reverse()); // newest first
   });
 
+  // REST: active commands
+  app.get("/api/commands/active", (_req, res) => {
+    res.json(getActiveCommands());
+  });
+
   // SPA fallback
   app.use((_req, res) => {
     const indexPath = path.join(UI_STATIC_DIR, "index.html");
@@ -192,6 +198,21 @@ export async function startUIServer(): Promise<void> {
           } catch (e) {
             console.error("[UI] Rollback error:", e);
           }
+          break;
+        case "command:exec":
+          try {
+            executeCommand({
+              commandId: cmd.commandId,
+              cmd: cmd.cmd,
+              args: cmd.args,
+              raw: cmd.raw,
+            });
+          } catch (err: unknown) {
+            console.error("[UI] Command execution error:", err);
+          }
+          break;
+        case "command:kill":
+          killCommand(cmd.commandId);
           break;
       }
     });
