@@ -12,6 +12,7 @@
 //   • No arbitrary filesystem access, no shell execution, no platform write tools
 // =============================================================================
 
+import { bus } from "./eventBus";
 import { defineTool } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
 import * as fs from "fs";
@@ -228,6 +229,12 @@ export function buildImproveTools() {
 
       const proposalId = `prop_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
 
+      bus.publish("improvement:proposal_submitted", {
+        proposalId,
+        target: params.target,
+        rationale: params.rationale,
+      });
+
       try {
         // 1. Run isolated sandbox evaluation
         const sandboxResult = await runInSandbox(
@@ -235,6 +242,15 @@ export function buildImproveTools() {
           params.newContent,
           proposalId
         );
+
+        bus.publish("improvement:sandbox_result", {
+          proposalId,
+          verdict: sandboxResult.verdict,
+          score: sandboxResult.score,
+          passedCases: sandboxResult.passedCases,
+          totalCases: sandboxResult.totalCases,
+          errorMessage: sandboxResult.errorMessage,
+        });
 
         if (sandboxResult.verdict !== "ACCEPTED" && sandboxResult.score < 0.98) {
           return {
