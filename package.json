@@ -11,21 +11,29 @@
     "start": "node --require ts-node/register src/index.ts",
     "eval": "node --require ts-node/register src/improve/evalRunner.ts",
     "improve": "node --require ts-node/register src/improve/improveSession.ts",
-    "rollback": "node --require ts-node/register src/improve/promoter.ts rollback"
+    "rollback": "node --require ts-node/register src/improve/promoter.ts rollback",
+    "ui": "node --require ts-node/register src/uiServer.ts",
+    "ui:build": "cd ui && npm install && npm run build"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
     "@types/node": "^26.0.0",
+    "@types/ws": "^8.18.1",
     "ts-node": "^10.9.2",
     "typescript": "^6.0.3"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.125.0",
     "@earendil-works/pi-coding-agent": "^0.74.2",
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
     "p-limit": "^6.1.0",
-    "uuid": "^11.1.0"
+    "uuid": "^11.1.0",
+    "ws": "^8.21.3"
   }
 }

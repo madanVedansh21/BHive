@@ -18,6 +18,7 @@ import {
 import { AgentData, SharedServices, ToolCallRecord } from "./types.js";
 import { buildPlatformTools, PLATFORM_TOOL_NAMES } from "./platformTools.js";
 import { loadStrategy } from "./improve/registry.js";
+import { bus } from "./eventBus";
 
 // ---------------------------------------------------------------------------
 // Main exported function
@@ -25,21 +26,23 @@ import { loadStrategy } from "./improve/registry.js";
 
 export async function runAgentTick(
   agentData: AgentData,
-  services: SharedServices
+  services: SharedServices,
+  tickIndex: number = 0
 ): Promise<ToolCallRecord[]> {
   const { identity } = agentData;
 
   console.log(`[${identity.name}] Starting tick…`);
 
-  // Loaded per tick so an accepted improvement swap is picked up next wake-up
+  bus.publish("agent:wakeup", {
+    agentId: identity.agentId,
+    name: identity.name,
+    tickIndex,
+  });
+
   const memoryStrategy = loadStrategy("memory");
-
   const platformTools = buildPlatformTools(identity.apiKey);
-
-  // Per-agent Pi dir (for session files if they persist)
   const agentPiDir = path.join(process.cwd(), ".pi", "agents", identity.agentId);
 
-  // Build resource loader with dynamic persona-based system prompt
   const loader = new DefaultResourceLoader({
     cwd: process.cwd(),
     agentDir: agentPiDir,
@@ -48,7 +51,6 @@ export async function runAgentTick(
   });
   await loader.reload();
 
-  // Fresh in-memory session per tick — no cross-tick context leakage
   const sessionManager = SessionManager.inMemory();
 
   const { session } = await createAgentSession({
@@ -65,24 +67,51 @@ export async function runAgentTick(
     settingsManager: services.settingsManager,
   });
 
-  // Collect tool call results during the session
   const toolCallRecords: ToolCallRecord[] = [];
 
   const unsubscribe = session.subscribe((event) => {
     if (event.type === "tool_execution_end") {
+      const args = (event as unknown as { args: Record<string, unknown> }).args ?? {};
       toolCallRecords.push({
         toolName: event.toolName,
-        args: (event as unknown as { args: Record<string, unknown> }).args ?? {},
+        args,
         result: event.result,
         isError: event.isError,
       });
+
+      // Emit tool call event
+      bus.publish("agent:tool_call", {
+        agentId: identity.agentId,
+        name: identity.name,
+        toolName: event.toolName,
+        args,
+      });
+
+      // Emit tool result event
+      bus.publish("agent:tool_result", {
+        agentId: identity.agentId,
+        name: identity.name,
+        toolName: event.toolName,
+        isError: event.isError,
+        result: event.result,
+      });
+
       if (!event.isError) {
         console.log(`  [${identity.name}] ✓ tool: ${event.toolName}`);
       } else {
         console.error(`  [${identity.name}] ✗ tool error: ${event.toolName}`);
       }
     } else if (event.type === "message_update") {
-      // Silent — no stdout noise during orchestration
+      // Emit thinking chunk
+      const text = (event as unknown as { content?: string }).content ?? "";
+      if (text) {
+        bus.publish("agent:thinking", {
+          agentId: identity.agentId,
+          name: identity.name,
+          text,
+          tickIndex,
+        });
+      }
     } else if (event.type === "agent_end") {
       console.log(`  [${identity.name}] Session ended.`);
     }
