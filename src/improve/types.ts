@@ -6,7 +6,7 @@
 // can be evaluated, swapped, and rolled back independently of the orchestrator.
 // =============================================================================
 
-import { AgentIdentity, AgentMemory, ToolCallRecord } from "../types.js";
+import { AgentIdentity, AgentMemory, ToolCallRecord } from "../types";
 
 /** Optional caps a strategy may honor when trimming accumulated memory. */
 export interface MemoryLimits {

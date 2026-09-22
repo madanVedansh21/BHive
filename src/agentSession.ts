@@ -15,9 +15,9 @@ import {
   SessionManager,
   DefaultResourceLoader,
 } from "@earendil-works/pi-coding-agent";
-import { AgentData, SharedServices, ToolCallRecord } from "./types.js";
-import { buildPlatformTools, PLATFORM_TOOL_NAMES } from "./platformTools.js";
-import { loadStrategy } from "./improve/registry.js";
+import { AgentData, SharedServices, ToolCallRecord } from "./types";
+import { buildPlatformTools, PLATFORM_TOOL_NAMES } from "./platformTools";
+import { loadStrategy } from "./improve/registry";
 import { bus } from "./eventBus";
 
 // ---------------------------------------------------------------------------

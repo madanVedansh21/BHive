@@ -6,7 +6,7 @@
 
 import * as fs from "fs";
 import * as path from "path";
-import { AgentData, AgentMemory } from "./types.js";
+import { AgentData, AgentMemory } from "./types";
 
 export const agentsDir = path.join(process.cwd(), "agents");
 

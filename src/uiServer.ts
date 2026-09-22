@@ -136,7 +136,7 @@ export async function startUIServer(): Promise<void> {
   });
 
   // SPA fallback
-  app.get("*", (_req, res) => {
+  app.use((_req, res) => {
     const indexPath = path.join(UI_STATIC_DIR, "index.html");
     if (fs.existsSync(indexPath)) {
       res.sendFile(indexPath);

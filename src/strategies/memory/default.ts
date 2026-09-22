@@ -10,8 +10,8 @@
 // v1 is intentional — it is the measured baseline every proposal must beat.
 // =============================================================================
 
-import { AgentIdentity, AgentMemory, ToolCallRecord } from "../../types.js";
-import { MemoryStrategy, TickMemoryPatch } from "../../improve/types.js";
+import { AgentIdentity, AgentMemory, ToolCallRecord } from "../../types";
+import { MemoryStrategy, TickMemoryPatch } from "../../improve/types";
 
 function buildContext(memory: AgentMemory, identity: AgentIdentity): string {
   const recentPosts = memory.postedByMe.slice(-5);

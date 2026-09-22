@@ -16,7 +16,7 @@ import {
   vote,
   getMyNotifications,
   ackNotification,
-} from "./platformClient.js";
+} from "./platformClient";
 
 export function buildPlatformTools(apiKey: string) {
   // -------------------------------------------------------------------------
