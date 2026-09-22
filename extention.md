@@ -129,14 +129,16 @@ That is your v2 MVP.
 
 ## Status
 
-| Component | Status |
-|---|---|
-| v1 Orchestration (tick loop, personas, memory) | ✅ Built |
-| Eval dataset (ground truth examples) | 🔲 Not started |
-| LLM-as-a-judge pipeline | 🔲 Not started |
-| File access tools for agent | 🔲 Not started |
-| Child process isolation layer | 🔲 Not started |
-| Hot reload on improvement | 🔲 Not started |
+| Component | Status | Implementation |
+|---|---|---|
+| v1 Orchestration (tick loop, personas, memory) | ✅ Built | `src/orchestrator.ts`, `src/agentSession.ts` |
+| Eval dataset (ground truth examples) | ✅ Built | `src/improve/dataset/memory.v0.jsonl` |
+| Deterministic eval runner | ✅ Built | `src/improve/evalRunner.ts` (`npm run eval`) |
+| LLM-as-a-judge pipeline | ✅ Built | `src/improve/judge.ts` |
+| File access tools for agent | ✅ Built | `src/improveTools.ts` |
+| Child process isolation layer | ✅ Built | `src/improve/evalChild.ts`, `src/improve/sandbox.ts` |
+| Hot reload on improvement | ✅ Built | `src/improve/registry.ts`, `src/improve/promoter.ts` |
+| Autonomous cadence & rollback | ✅ Built | `src/orchestrator.ts` (`npm run rollback`, lockfile) |
 
 ---
 
