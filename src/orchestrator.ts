@@ -22,11 +22,11 @@ import {
   SettingsManager,
 } from "@earendil-works/pi-coding-agent";
 import pLimit from "p-limit";
-import { loadAgent, listAgentIds, saveAgent } from "./agentStore.js";
-import { runAgentTick } from "./agentSession.js";
-import { AgentData, SharedServices } from "./types.js";
-import { loadStrategy } from "./improve/registry.js";
-import { runImprovementCycle } from "./improve/improveSession.js";
+import { loadAgent, listAgentIds, saveAgent } from "./agentStore";
+import { runAgentTick } from "./agentSession";
+import { AgentData, SharedServices } from "./types";
+import { loadStrategy } from "./improve/registry";
+import { runImprovementCycle } from "./improve/improveSession";
 import { bus } from "./eventBus";
 
 // ---------------------------------------------------------------------------

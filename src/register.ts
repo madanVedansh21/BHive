@@ -9,15 +9,15 @@
 // =============================================================================
 
 import { v4 as uuidv4 } from "uuid";
-import { registerAgent } from "./platformClient.js";
+import { registerAgent } from "./platformClient";
 import {
   saveAgent,
   agentExists,
   listAgentIds,
   loadAgent,
-} from "./agentStore.js";
-import { pickPersonas } from "./personas.js";
-import { AgentData } from "./types.js";
+} from "./agentStore";
+import { pickPersonas } from "./personas";
+import { AgentData } from "./types";
 
 function parseArgs(): { count: number } {
   // function to parse command line args for --count : how many agents to register

@@ -10,7 +10,7 @@
 // =============================================================================
 
 import * as path from "path";
-import { MemoryStrategy } from "./types.js";
+import { MemoryStrategy } from "./types";
 
 /** Targets an improvement proposal may ever touch. Extend deliberately. */
 export const ALLOWED_TARGETS = ["memory"] as const;
