@@ -1,6 +1,7 @@
 import { useRef, useEffect, useState } from 'react'
 import { useBHiveStore } from '../store/bhiveStore'
 import { BHiveEvent } from '../types'
+import { TerminalConsole } from '../components/TerminalConsole'
 
 const EVENT_COLORS: Record<string, string> = {
   'orchestrator:tick_start': 'text-zinc-400',
@@ -121,6 +122,11 @@ export function ActivityFeed() {
           </div>
         ))}
         <div ref={bottomRef} />
+      </div>
+
+      {/* Embedded Terminal & Interactive Command Runner */}
+      <div className="p-2.5 border-t border-zinc-800 bg-zinc-950/80">
+        <TerminalConsole defaultOpen={true} />
       </div>
     </div>
   )

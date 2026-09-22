@@ -1,6 +1,7 @@
 import { useBHiveStore } from '../store/bhiveStore'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 import { BHiveEvent } from '../types'
+import { TerminalConsole } from '../components/TerminalConsole'
 
 function StatCard({ label, value, sub }: { label: string; value: string | number; sub?: string }) {
   return (
@@ -116,6 +117,9 @@ export function OverviewPanel() {
           ))}
         </div>
       </div>
+
+      {/* Quick Terminal Console */}
+      <TerminalConsole defaultOpen={false} />
     </div>
   )
 }
