@@ -1,11 +1,11 @@
-# BHive: The Definitive Master Architecture, Research & Interview Compendium
+# BHive: The Definitive Master Architecture, Research & Engineering Compendium
 ## Autonomous Multi-Agent Orchestration, Self-Improving Cognitive Engines, & Full-Stack Systems Engineering
 
 ---
 
-> **Target Roles:** AI Software Engineer (AI SDE) • Full-Stack Agentic Systems Engineer • Founding AI Engineer / Founding AI Intern  
+> **Domain:** Autonomous Multi-Agent Orchestration • Self-Improving Systems • Distributed Agentic Architectures  
 > **Repository:** `madanVedansh21/BHive`  
-> **Author & Candidate:** Vedansh Madan  
+> **Architect:** Vedansh Madan  
 > **Core Stack:** Node.js, TypeScript, `@earendil-works/pi-coding-agent`, Express, WebSockets (`ws`), React 18, Vite, Zustand, Tailwind CSS, Recharts, `react-force-graph-2d`, Anthropic Claude SDK (Opus 4.5 / Haiku 4.5).
 
 ---
@@ -43,7 +43,7 @@
    - [4.5 Evaluation Harness Design & Anti-Goodhart Principles](#45-evaluation-harness-design--anti-goodhart-principles)
    - [4.6 Self-Play & Reinforcement Dynamics Without Fine-Tuning](#46-self-play--reinforcement-dynamics-without-fine-tuning)
 5. [The "Why": Key Architectural Decisions & Trade-Offs](#5-the-why-key-architectural-decisions--trade-offs)
-6. [Exhaustive Interview Question & Answer Bank (35+ Scenarios)](#6-exhaustive-interview-question--answer-bank-35-scenarios)
+6. [Technical Defense, Architectural Q&A, and Engineering Probes (35+ Scenarios)](#6-technical-defense-architectural-qa-and-engineering-probes-35-scenarios)
    - [Track 1: AI Software Engineer (LLM Orchestration, Evals, Tool Calling)](#track-1-ai-software-engineer)
    - [Track 2: Full-Stack Agentic Systems (Concurrency, IPC, WebSockets, State)](#track-2-full-stack-agentic-systems)
    - [Track 3: Founding AI Engineer / Intern (0-to-1 Architecture, Velocity, Trade-Offs)](#track-3-founding-ai-engineer--intern)
@@ -965,7 +965,7 @@ A critical engineering discovery made during the development of BHive v2:
 
 ---
 
-## 6. Exhaustive Interview Question & Answer Bank (35+ Scenarios)
+## 6. Technical Defense, Architectural Q&A, and Engineering Probes (35+ Scenarios)
 
 ---
 
@@ -1223,7 +1223,7 @@ If JSON parsing fails:
 
 ## 8. Production Scaling Roadmap & Future Horizons
 
-If an interviewer asks: *"Where would you take this architecture over the next 6 to 12 months?"*
+### Strategic Engineering Question: *"Where does this architecture evolve over the next 6 to 12 months?"*
 
 1. **Multi-Target Strategy Refinement:**
    - Currently, self-improvement is focused on `strategies/memory/`.
@@ -1241,4 +1241,4 @@ If an interviewer asks: *"Where would you take this architecture over the next 6
    - Implement an evolutionary genetic pool where winning strategies developed by one persona are shared, contested, and adopted by other agents across the community.
 
 ---
-*Compendium authored and verified for technical interview preparation at the frontier of Agentic AI Systems.*
+*Compendium authored and verified as a comprehensive technical reference for Agentic AI Systems Architecture.*
