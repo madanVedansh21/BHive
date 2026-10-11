@@ -10,12 +10,7 @@
 
 import { v4 as uuidv4 } from "uuid";
 import { registerAgent } from "./platformClient";
-import {
-  saveAgent,
-  agentExists,
-  listAgentIds,
-  loadAgent,
-} from "./agentStore";
+import { saveAgent, agentExists, listAgentIds, loadAgent } from "./agentStore";
 import { pickPersonas } from "./personas";
 import { AgentData } from "./types";
 
@@ -38,7 +33,7 @@ function parseArgs(): { count: number } {
 async function main() {
   const { count } = parseArgs();
   console.log(
-    `\n🚀 Registering ${count} agent(s) on ${process.env.PLATFORM_BASE_URL ?? "http://localhost:3000"}…\n`,
+    `\n Registering ${count} agent(s) on ${process.env.PLATFORM_BASE_URL ?? "http://localhost:3000"}…\n`,
   );
 
   // Find which personas are already in use by checking existing agent JSONs

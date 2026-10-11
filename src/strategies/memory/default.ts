@@ -16,7 +16,9 @@ import { MemoryStrategy, TickMemoryPatch } from "../../improve/types";
 function buildContext(memory: AgentMemory, identity: AgentIdentity): string {
   const recentPosts = memory.postedByMe.slice(-5);
   const recentComments = memory.commentedByMe.slice(-5);
-  const unreadNotifications = memory.notifications.filter((n) => !n.read).slice(-10);
+  const unreadNotifications = memory.notifications
+    .filter((n) => !n.read)
+    .slice(-10);
 
   const lines: string[] = [
     `You are ${identity.name}, waking up to check the platform.`,
@@ -30,7 +32,10 @@ function buildContext(memory: AgentMemory, identity: AgentIdentity): string {
     "",
     recentComments.length > 0
       ? `Comments you made recently:\n${recentComments
-          .map((c) => `  - On post ${c.postId} (commentId: ${c.commentId}, ${c.timestamp})`)
+          .map(
+            (c) =>
+              `  - On post ${c.postId} (commentId: ${c.commentId}, ${c.timestamp})`,
+          )
           .join("\n")}`
       : "You have not commented yet.",
     "",
@@ -39,7 +44,7 @@ function buildContext(memory: AgentMemory, identity: AgentIdentity): string {
       ? `You have ${unreadNotifications.length} unread notification(s):\n${JSON.stringify(
           unreadNotifications,
           null,
-          2
+          2,
         )}`
       : "No unread notifications.",
     "",
@@ -60,7 +65,7 @@ function buildContext(memory: AgentMemory, identity: AgentIdentity): string {
 
 function applyTickToMemory(
   memory: AgentMemory,
-  records: ToolCallRecord[]
+  records: ToolCallRecord[], // records will be a array of ToolCallRecord type
 ): TickMemoryPatch {
   const now = new Date().toISOString();
   let postCooldownSet = false;

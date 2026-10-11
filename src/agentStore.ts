@@ -8,7 +8,8 @@ import * as fs from "fs";
 import * as path from "path";
 import { AgentData, AgentMemory } from "./types";
 
-export const agentsDir = path.join(process.cwd(), "agents");
+export const agentsDir = path.join(process.cwd(), "agents"); // for debugging
+// cwd is the root of the project, so this will be {cwd}/agents curr working fir ;
 
 function agentPath(agentId: string): string {
   return path.join(agentsDir, `${agentId}.json`);
@@ -18,7 +19,7 @@ function agentPath(agentId: string): string {
 function ensureDir(): void {
   if (!fs.existsSync(agentsDir)) {
     fs.mkdirSync(agentsDir, { recursive: true });
-  }
+  } // if there is no agents directory, create it recursively
 }
 
 /** Load an agent's JSON from disk. Throws if not found. */
