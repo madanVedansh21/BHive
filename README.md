@@ -39,18 +39,13 @@ Imagine an autonomous agent named **NovaStellar** participating in a digital com
   4. **Isolated Sandboxing (Process B):** The candidate code is executed in an isolated child process (`child_process.fork()`). It must compile cleanly, pass a 10-case ground-truth test suite (`npm run eval`), and satisfy an independent LLM Judge on density, actionability, fidelity, and token efficiency.
   5. **Zero-Downtime Hot Reload:** If the candidate exceeds the baseline score, the system atomically promotes the file (`write-then-rename`) and evicts stale modules from memory. On the very next tick, NovaStellar and all peer agents immediately execute using the upgraded cognitive strategy without restarting the orchestrator.
 
-```text
- ┌────────────────┐       ┌─────────────────┐       ┌──────────────────┐
- │  1. SIMULATION │  ──►  │ 2. INTROSPECTION│  ──►  │  3. CODE FORK    │
- │ Agents interact│       │ Agent analyzes  │       │ Optimizer writes │
- │ & update state │       │ memory strategy │       │ candidate module │
- └────────────────┘       └─────────────────┘       └────────┬─────────┘
-         ▲                                                   │
-         │                ┌─────────────────┐                │
-         │  HOT RELOAD    │  4. VERIFICATION│                ▼
-         └─────────────── │ Benchmark suite │ ◄──────────────┘
-           (Zero Downtime)│ + LLM-as-Judge  │  (Process B Sandbox)
-                          └─────────────────┘
+```mermaid
+flowchart LR
+    Sim["1. Live Simulation<br/>Agents interact & record memory"] --> Intro["2. Introspection<br/>Optimizer analyzes strategy"]
+    Intro --> Fork["3. Code Candidate<br/>Optimizer writes revised default.ts"]
+    Fork --> Eval["4. Sandboxed Verification<br/>Ground-truth suite + LLM Judge"]
+    Eval -->|"Atomic Hot Reload<br/>(Zero Downtime)"| Sim
+```
 
 ---
 
@@ -71,39 +66,48 @@ Imagine an autonomous agent named **NovaStellar** participating in a digital com
 
 BHive separates live simulation runtime from experimental self-modification using a dual-process topology:
 
-```
-┌────────────────────────────────────────────────────────────────────────┐
-│  PROCESS A: ORCHESTRATOR & LIVE SIMULATION                             │
-│                                                                        │
-│  Tick Loop (Every TICK_INTERVAL_MS)                                    │
-│   ├── Pick eligible agents (respecting cooldowns & concurrency limits) │
-│   ├── Spawn ephemeral Pi Agent Sessions                                │
-│   ├── Execute platform actions (create_post, comment, vote)            │
-│   └── Update local JSON memory via active MemoryStrategy               │
-│                                                                        │
-│  Improvement Cadence (Every IMPROVE_CADENCE_TICKS)                     │
-│   ├── Launch Improvement Pi Session with introspection tools           │
-│   └── Agent proposes candidate default.ts                              │
-│                                │                                       │
-│                                ▼                                       │
-│  ┌──────────────────────────────────────────────────────────────────┐  │
-│  │ PROCESS B: EPHEMERAL CHILD SANDBOX (child_process.fork)          │  │
-│  │                                                                  │  │
-│  │  • Completely isolated V8 heap (cannot corrupt Process A)        │  │
-│  │  • Pre-flight TypeScript syntax validation                       │  │
-│  │  • Deterministic ground-truth eval harness (10 test cases)       │  │
-│  │  • Multi-provider LLM Judge pipeline (k=3 median Likert score)   │  │
-│  │  • SIGKILL watchdog terminates runaway code                      │  │
-│  └──────────────────────────────────────────────────────────────────┘  │
-│                                │                                       │
-│                                ▼                                       │
-│  PROMOTION ENGINE                                                      │
-│   Candidate Score ≥ Baseline + ACCEPT_MARGIN (+5%)?                    │
-│     ├── YES: Archive previous version to improvement/archive/          │
-│     │        Atomic write-then-rename to live strategy module          │
-│     │        Evict from require.cache (Hot-Reload on next tick)        │
-│     └── NO:  Record rejection to history.jsonl with failure diagnostic │
-└────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    subgraph ProcessA["Process A: Orchestrator & Live Simulation"]
+        direction TB
+        Sched["Tick Loop Scheduler<br/>(Every TICK_INTERVAL_MS)"]
+        Select["Select Eligible Agents<br/>(Cooldowns & Concurrency)"]
+        Sessions["Ephemeral Agent Sessions<br/>(Post, Comment, Vote)"]
+        Memory["Update Agent Memory<br/>(Active MemoryStrategy)"]
+
+        Sched --> Select --> Sessions --> Memory
+
+        Cadence{"Improvement Cadence<br/>(Every N Ticks)"}
+        Introspect["Introspection Pi Session<br/>(Introspection Tools)"]
+        Propose["Propose Candidate Module<br/>(New default.ts)"]
+
+        Memory -.-> Cadence
+        Cadence -- "Tick % N == 0" --> Introspect --> Propose
+    end
+
+    subgraph ProcessB["Process B: Isolated Child Sandbox (child_process.fork)"]
+        direction TB
+        Syntax["1. TypeScript Pre-Flight<br/>(tsc --noEmit validation)"]
+        EvalTest["2. Deterministic Benchmark<br/>(10 Ground-Truth Test Cases)"]
+        JudgePipe["3. LLM-as-a-Judge Pipeline<br/>(k=3 Median Likert Scoring)"]
+        Watchdog["SIGKILL Watchdog<br/>(Terminates runaway loops)"]
+
+        Syntax --> EvalTest --> JudgePipe
+    end
+
+    Propose ==>|"Fork IPC"| ProcessB
+
+    subgraph Promo["Promotion Engine"]
+        Check{"Score >= Baseline + ACCEPT_MARGIN?"}
+        Promote["Promote Candidate:<br/>1. Archive to improvement/archive/<br/>2. Atomic write-then-rename<br/>3. Evict from require.cache"]
+        Reject["Reject Candidate:<br/>1. Append failure diagnostic<br/>2. Log to history.jsonl"]
+
+        Check -- "YES (+5%)" --> Promote
+        Check -- "NO" --> Reject
+    end
+
+    ProcessB ==>|"IPC Eval Report"| Check
+    Promote -.->|"Hot-Reload on Next Tick"| Memory
 ```
 
 ---
