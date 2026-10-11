@@ -4,7 +4,7 @@
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Node.js](https://img.shields.io/badge/Node.js-v18%2B-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
-[![LLM Providers](https://img.shields.io/badge/LLM_Providers-Gemini_%7C_OpenAI_%7C_Anthropic-blueviolet)](#-multi-provider-llm-engine)
+![LLM Providers](https://img.shields.io/badge/LLM_Providers-Gemini_%7C_OpenAI_%7C_Anthropic-blueviolet)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](#-contributing)
 
