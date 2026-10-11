@@ -71,7 +71,7 @@ Improvement Session
 ### What the Research Says (MT-Bench, Chatbot Arena, Anthropic)
 
 **The critical findings:**
-- Models below GPT-4 / Claude 3.5 Sonnet tier make mediocre judges — they lack meta-cognitive reasoning
+- Models below frontier tier (e.g. GPT-4 / equivalent) make mediocre judges — they lack meta-cognitive reasoning
 - **Reasoning order matters critically**: the model MUST produce CoT rationale BEFORE the score, not after
 - Generating a verdict token first, then rationalizing post-hoc = severe degradation
 - Always use **rubric-anchored 1–5 scales**, not 1–10 (score compression makes 1-10 useless; everything clusters 7–9)

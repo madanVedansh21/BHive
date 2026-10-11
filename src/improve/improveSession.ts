@@ -70,12 +70,17 @@ function releaseLock(): void {
 // ---------------------------------------------------------------------------
 
 export function createImprovementServices(): SharedServices {
-  const modelProvider = process.env.MODEL_PROVIDER ?? "anthropic";
-  const modelId = process.env.MODEL_ID ?? "claude-opus-4-5";
+  const rawProvider = process.env.MODEL_PROVIDER ?? "anthropic";
+  const modelProvider = rawProvider.toLowerCase() === "gemini" ? "google" : rawProvider.toLowerCase();
+  const modelId = process.env.MODEL_ID ?? "";
 
   const authStorage = AuthStorage.create(`${process.cwd()}/.pi/agent/auth.json`);
-  if (process.env.MY_KEY) {
-    authStorage.setRuntimeApiKey("anthropic", process.env.MY_KEY);
+  const apiKey = process.env.MY_KEY
+    || (modelProvider === "google" ? (process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY)
+        : modelProvider === "openai" ? process.env.OPENAI_API_KEY
+        : process.env.ANTHROPIC_API_KEY);
+  if (apiKey) {
+    authStorage.setRuntimeApiKey(modelProvider, apiKey);
   }
 
   const modelRegistry = ModelRegistry.create(
@@ -86,7 +91,7 @@ export function createImprovementServices(): SharedServices {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const model = (getModel as any)(modelProvider, modelId) as ReturnType<typeof getModel> | null;
   if (!model) {
-    throw new Error(`Model ${modelProvider}/${modelId} not found.`);
+    throw new Error(`Model ${rawProvider}/${modelId} not found. Check MODEL_PROVIDER and MODEL_ID env vars.`);
   }
 
   const settingsManager = SettingsManager.inMemory({

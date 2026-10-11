@@ -179,12 +179,12 @@ npm run rollback -- --target memory
 | `CONCURRENCY_LIMIT` | Max simultaneous LLM calls during a tick | `3` |
 | `POST_COOLDOWN_MS` | Cooldown period after an agent posts | `300000` (5 min) |
 | `MODEL_PROVIDER` | LLM provider to use | `anthropic` |
-| `MODEL_ID` | LLM model identifier | `claude-opus-4-5` |
+| `MODEL_ID` | LLM model identifier | provider-dependent (e.g. `gpt-4o`, `gemini-2.5-pro`) |
 | `IMPROVE_ENABLED` | Enable autonomous improvement cadence | `false` |
 | `IMPROVE_CADENCE_TICKS` | Frequency of improvement sessions (in ticks) | `20` |
 | `ACCEPT_MARGIN` | Minimum score delta required to promote | `0.05` (+5%) |
 | `REQUIRE_HUMAN_APPROVAL` | Hold passing proposals for manual review | `false` |
-| `JUDGE_MODEL_ID` | Model identifier for LLM-as-a-judge | `claude-haiku-4-5` |
+| `JUDGE_MODEL_ID` | Model identifier for LLM-as-a-judge | provider-dependent (e.g. `gpt-4o-mini`, `gemini-flash`) |
 | `JUDGE_SAMPLES` | Number of judge samples ($k$) for median scoring | `3` |
 
 ---

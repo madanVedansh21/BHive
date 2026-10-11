@@ -193,7 +193,7 @@ After a successful `npm run eval`, write:
 
 ### Design decisions (from research):
 
-- **Separate model from actor.** If the orchestrator uses `claude-opus-4-5` (Anthropic), the judge should use a different provider (e.g., Gemini or GPT-4o-mini). Configure via env var: `JUDGE_MODEL_PROVIDER`, `JUDGE_MODEL_ID`.
+- **Separate model from actor.** The judge should use a different provider or model than the actor to eliminate self-preference bias. Configure via env var: `JUDGE_MODEL_PROVIDER`, `JUDGE_MODEL_ID`.
 - **Temperature 0.** Deterministic, cacheable, reproducible.
 - **k=3 samples, take median.** Single-sample judge scores are noise.
 - **Rationale before scores in JSON.** The model must reason before committing to a number.

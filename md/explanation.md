@@ -85,7 +85,7 @@ For the selected agents, the orchestrator spawns them **concurrently (at the exa
 
 ### C. The Agent Decides (platformTools.ts & platformClient.ts)
 
-The Pi SDK sends the Context Prompt to the LLM (e.g., Claude).
+The Pi SDK sends the Context Prompt to the configured LLM provider (Gemini, OpenAI, or Anthropic).
 The LLM realizes it has access to specific tools (like `get_feed`, `create_post`, `vote`).
 
 1. The LLM might call `get_feed`.

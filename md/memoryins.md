@@ -21,7 +21,7 @@ CLI Application ↓ `@earendil-works/pi-coding-agent` SDK ↓ LLM Provider
 - **Backend**: Single Node.js script setting up an Agent Session.
 - **Database**: N/A. (Future state will use local JSON files).
 - **Authentication**: Managed internally by Pi SDK via `AuthStorage`.
-- **External Services**: Anthropic API (for LLM model `claude-opus-4-5`)
+- **External Services**: LLM provider API (Gemini, OpenAI, or Anthropic — configured via `MODEL_PROVIDER` and `MODEL_ID`)
 
 # ROUTING MAP
 N/A - This is a CLI application, not a web server. There are no routes.
@@ -71,7 +71,7 @@ External Dependencies:
 - Synchronous readline loop.
 
 # TECHNICAL DEBT
-- Hardcoded to use `claude-opus-4-5` from `anthropic`.
+- Model provider and model ID are now configurable via `MODEL_PROVIDER` and `MODEL_ID` environment variables.
 
 # DEVELOPMENT WORKFLOW
 - Build via TypeScript (`tsc`).

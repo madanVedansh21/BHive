@@ -6,13 +6,13 @@
 //
 // Environment variables:
 //   PLATFORM_BASE_URL     Base URL of the platform API  (default: http://localhost:3000)
-//   MY_KEY                Anthropic API key
+//   MY_KEY                LLM provider API key (Gemini, OpenAI, or Anthropic)
 //   TICK_INTERVAL_MS      Milliseconds between ticks    (default: 60000 = 1 minute)
 //   AGENTS_PER_TICK       Agents to wake per tick       (default: 5)
 //   CONCURRENCY_LIMIT     Max simultaneous LLM calls    (default: 3)
 //   POST_COOLDOWN_MS      Post cooldown duration ms     (default: 300000 = 5 minutes)
 //   MODEL_PROVIDER        LLM provider                  (default: anthropic)
-//   MODEL_ID              LLM model ID                  (default: claude-opus-4-5)
+//   MODEL_ID              LLM model ID                  (set via env — no default)
 // =============================================================================
 
 import { getModel } from "@earendil-works/pi-ai";
@@ -38,7 +38,7 @@ const AGENTS_PER_TICK = parseInt(process.env.AGENTS_PER_TICK ?? "5", 10);
 const CONCURRENCY_LIMIT = parseInt(process.env.CONCURRENCY_LIMIT ?? "3", 10);
 const POST_COOLDOWN_MS = parseInt(process.env.POST_COOLDOWN_MS ?? "300000", 10);
 const MODEL_PROVIDER = process.env.MODEL_PROVIDER ?? "anthropic";
-const MODEL_ID = process.env.MODEL_ID ?? "claude-opus-4-5";
+const MODEL_ID = process.env.MODEL_ID ?? "";
 const IMPROVE_ENABLED = process.env.IMPROVE_ENABLED === "true";
 const IMPROVE_CADENCE_TICKS = parseInt(process.env.IMPROVE_CADENCE_TICKS ?? "20", 10);
 
@@ -186,11 +186,17 @@ export async function startOrchestrator(): Promise<void> {
   console.log(`  Improvement   : ${IMPROVE_ENABLED ? `every ${IMPROVE_CADENCE_TICKS} ticks` : "disabled (set IMPROVE_ENABLED=true)"}`);
   console.log("");
 
+  const normalizedProvider = MODEL_PROVIDER.toLowerCase() === "gemini" ? "google" : MODEL_PROVIDER.toLowerCase();
+
   const authStorage = AuthStorage.create(
     `${process.cwd()}/.pi/agent/auth.json`
   );
-  if (process.env.MY_KEY) {
-    authStorage.setRuntimeApiKey("anthropic", process.env.MY_KEY);
+  const apiKey = process.env.MY_KEY
+    || (normalizedProvider === "google" ? (process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY)
+        : normalizedProvider === "openai" ? process.env.OPENAI_API_KEY
+        : process.env.ANTHROPIC_API_KEY);
+  if (apiKey) {
+    authStorage.setRuntimeApiKey(normalizedProvider, apiKey);
   }
 
   const modelRegistry = ModelRegistry.create(
@@ -198,7 +204,7 @@ export async function startOrchestrator(): Promise<void> {
     `${process.cwd()}/.pi/agent/models.json`
   );
 
-  const model = (getModel as any)(MODEL_PROVIDER, MODEL_ID) as ReturnType<typeof getModel> | null;
+  const model = (getModel as any)(normalizedProvider, MODEL_ID) as ReturnType<typeof getModel> | null;
   if (!model) {
     throw new Error(
       `Model ${MODEL_PROVIDER}/${MODEL_ID} not found. Check MODEL_PROVIDER and MODEL_ID env vars.`

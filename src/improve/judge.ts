@@ -10,13 +10,13 @@
 //   • ACCEPT_MARGIN of +0.05 prevents churn from judge noise
 //
 // Config (env vars):
-//   JUDGE_API_KEY       — API key for the judge model (defaults to MY_KEY)
-//   JUDGE_MODEL_ID      — Model to use (default: claude-haiku-4-5)
-//   JUDGE_SAMPLES       — How many times to sample (default: 3)
-//   ACCEPT_MARGIN       — Minimum delta to accept a proposal (default: 0.05)
+//   JUDGE_API_KEY          — API key for the judge model (defaults to MY_KEY)
+//   JUDGE_MODEL_PROVIDER   — Provider for the judge model: anthropic | openai | gemini (defaults to MODEL_PROVIDER)
+//   JUDGE_MODEL_ID         — Model to use (set via env — no default; choose per provider)
+//   JUDGE_SAMPLES          — How many times to sample (default: 3)
+//   ACCEPT_MARGIN          — Minimum delta to accept a proposal (default: 0.05)
 // =============================================================================
 
-import Anthropic from "@anthropic-ai/sdk";
 import { AgentMemory, AgentIdentity } from "../types";
 
 // ---------------------------------------------------------------------------
@@ -54,9 +54,66 @@ export interface JudgeResult {
 // Configuration
 // ---------------------------------------------------------------------------
 
-const JUDGE_MODEL_ID = process.env.JUDGE_MODEL_ID ?? "claude-haiku-4-5";
+const JUDGE_MODEL_PROVIDER = process.env.JUDGE_MODEL_PROVIDER ?? process.env.MODEL_PROVIDER ?? "anthropic";
+const JUDGE_MODEL_ID = process.env.JUDGE_MODEL_ID ?? "";
 const JUDGE_SAMPLES = parseInt(process.env.JUDGE_SAMPLES ?? "3", 10);
 const JUDGE_PASS_THRESHOLD = 0.6; // composite >= 0.6 to pass a single sample
+
+// ---------------------------------------------------------------------------
+// Generic multi-provider LLM text call
+// Supports: anthropic | openai | gemini
+// ---------------------------------------------------------------------------
+
+async function callLLM(prompt: string, apiKey: string): Promise<string> {
+  if (!JUDGE_MODEL_ID) {
+    throw new Error(
+      "JUDGE_MODEL_ID is not set. Configure it via the environment variable."
+    );
+  }
+
+  const provider = JUDGE_MODEL_PROVIDER.toLowerCase();
+
+  if (provider === "openai") {
+    // OpenAI-compatible: works with gpt-4o, gpt-4o-mini, etc.
+    const { default: OpenAI } = await import("openai");
+    const client = new OpenAI({ apiKey });
+    const res = await client.chat.completions.create({
+      model: JUDGE_MODEL_ID,
+      temperature: 0,
+      max_tokens: 1024,
+      messages: [{ role: "user", content: prompt }],
+    });
+    return res.choices[0]?.message?.content ?? "";
+
+  } else if (provider === "gemini" || provider === "google") {
+    // Google Gemini via @google/generative-ai
+    const { GoogleGenerativeAI } = await import("@google/generative-ai");
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({
+      model: JUDGE_MODEL_ID,
+      generationConfig: { temperature: 0, maxOutputTokens: 1024 },
+    });
+    const result = await model.generateContent(prompt);
+    return result.response.text();
+
+  } else if (provider === "anthropic") {
+    // Anthropic provider
+    const { default: Anthropic } = await import("@anthropic-ai/sdk");
+    const client = new Anthropic({ apiKey });
+    const response = await client.messages.create({
+      model: JUDGE_MODEL_ID,
+      max_tokens: 1024,
+      temperature: 0,
+      messages: [{ role: "user", content: prompt }],
+    });
+    return response.content[0].type === "text" ? response.content[0].text : "";
+
+  } else {
+    throw new Error(
+      `Unsupported JUDGE_MODEL_PROVIDER: "${JUDGE_MODEL_PROVIDER}". Supported providers: gemini, openai, anthropic.`
+    );
+  }
+}
 
 // ---------------------------------------------------------------------------
 // The Judge Prompt
@@ -154,22 +211,14 @@ function normalizeScores(scores: JudgeDimScores): number {
 // ---------------------------------------------------------------------------
 
 async function runSingleJudgeSample(
-  client: Anthropic,
+  apiKey: string,
   rawMemory: AgentMemory,
   identity: AgentIdentity,
   contextPrompt: string
 ): Promise<JudgeRunResult> {
   const prompt = buildJudgePrompt(rawMemory, identity, contextPrompt);
 
-  const response = await client.messages.create({
-    model: JUDGE_MODEL_ID,
-    max_tokens: 1024,
-    temperature: 0, // deterministic — critical for reproducibility
-    messages: [{ role: "user", content: prompt }],
-  });
-
-  const rawText =
-    response.content[0].type === "text" ? response.content[0].text : "";
+  const rawText = await callLLM(prompt, apiKey);
 
   // Strip markdown fences if model adds them despite instructions
   const cleaned = rawText
@@ -229,19 +278,28 @@ export async function judgeContextPrompt(
   contextPrompt: string,
   apiKey?: string
 ): Promise<JudgeResult> {
-  const key = apiKey ?? process.env.JUDGE_API_KEY ?? process.env.MY_KEY ?? "";
+  const provider = JUDGE_MODEL_PROVIDER.toLowerCase();
+  const key = apiKey
+    ?? process.env.JUDGE_API_KEY
+    ?? process.env.MY_KEY
+    ?? (provider === "openai"
+      ? process.env.OPENAI_API_KEY
+      : (provider === "gemini" || provider === "google")
+      ? (process.env.GEMINI_API_KEY ?? process.env.GOOGLE_API_KEY)
+      : process.env.ANTHROPIC_API_KEY)
+    ?? "";
+
   if (!key) {
     throw new Error(
-      "No API key for judge. Set JUDGE_API_KEY or MY_KEY environment variable."
+      "No API key for judge. Set JUDGE_API_KEY, MY_KEY, or provider-specific API key (OPENAI_API_KEY, GEMINI_API_KEY, ANTHROPIC_API_KEY)."
     );
   }
 
-  const client = new Anthropic({ apiKey: key });
   const samples: JudgeRunResult[] = [];
 
   for (let i = 0; i < JUDGE_SAMPLES; i++) {
     const sample = await runSingleJudgeSample(
-      client,
+      key,
       rawMemory,
       identity,
       contextPrompt
