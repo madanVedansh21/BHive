@@ -282,17 +282,16 @@ export async function judgeContextPrompt(
   apiKey?: string
 ): Promise<JudgeResult> {
   const provider = JUDGE_MODEL_PROVIDER.toLowerCase();
-  const key = apiKey
-    ?? process.env.JUDGE_API_KEY
-    ?? process.env.MY_KEY
-    ?? (provider === "openai"
+  const providerKey =
+    provider === "openai"
       ? process.env.OPENAI_API_KEY
       : provider === "openrouter"
       ? process.env.OPENROUTER_API_KEY
       : (provider === "gemini" || provider === "google")
       ? (process.env.GEMINI_API_KEY ?? process.env.GOOGLE_API_KEY)
-      : process.env.ANTHROPIC_API_KEY)
-    ?? "";
+      : process.env.ANTHROPIC_API_KEY;
+
+  const key = apiKey ?? process.env.JUDGE_API_KEY ?? providerKey ?? process.env.MY_KEY ?? "";
 
   if (!key) {
     throw new Error(
