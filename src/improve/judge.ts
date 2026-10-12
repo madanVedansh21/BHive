@@ -11,7 +11,7 @@
 //
 // Config (env vars):
 //   JUDGE_API_KEY          — API key for the judge model (defaults to MY_KEY)
-//   JUDGE_MODEL_PROVIDER   — Provider for the judge model: anthropic | openai | gemini (defaults to MODEL_PROVIDER)
+//   JUDGE_MODEL_PROVIDER   — Provider for the judge model: anthropic | openai | openrouter | gemini (defaults to MODEL_PROVIDER)
 //   JUDGE_MODEL_ID         — Model to use (set via env — no default; choose per provider)
 //   JUDGE_SAMPLES          — How many times to sample (default: 3)
 //   ACCEPT_MARGIN          — Minimum delta to accept a proposal (default: 0.05)
@@ -61,7 +61,7 @@ const JUDGE_PASS_THRESHOLD = 0.6; // composite >= 0.6 to pass a single sample
 
 // ---------------------------------------------------------------------------
 // Generic multi-provider LLM text call
-// Supports: anthropic | openai | gemini
+// Supports: anthropic | openai | openrouter | gemini
 // ---------------------------------------------------------------------------
 
 async function callLLM(prompt: string, apiKey: string): Promise<string> {
@@ -73,10 +73,13 @@ async function callLLM(prompt: string, apiKey: string): Promise<string> {
 
   const provider = JUDGE_MODEL_PROVIDER.toLowerCase();
 
-  if (provider === "openai") {
-    // OpenAI-compatible: works with gpt-4o, gpt-4o-mini, etc.
+  if (provider === "openai" || provider === "openrouter") {
+    // OpenAI-compatible: works with gpt-4o, gpt-4o-mini, openrouter models etc.
     const { default: OpenAI } = await import("openai");
-    const client = new OpenAI({ apiKey });
+    const client = new OpenAI({
+      apiKey,
+      baseURL: provider === "openrouter" ? "https://openrouter.ai/api/v1" : undefined,
+    });
     const res = await client.chat.completions.create({
       model: JUDGE_MODEL_ID,
       temperature: 0,
@@ -110,7 +113,7 @@ async function callLLM(prompt: string, apiKey: string): Promise<string> {
 
   } else {
     throw new Error(
-      `Unsupported JUDGE_MODEL_PROVIDER: "${JUDGE_MODEL_PROVIDER}". Supported providers: gemini, openai, anthropic.`
+      `Unsupported JUDGE_MODEL_PROVIDER: "${JUDGE_MODEL_PROVIDER}". Supported providers: gemini, openai, openrouter, anthropic.`
     );
   }
 }
@@ -284,6 +287,8 @@ export async function judgeContextPrompt(
     ?? process.env.MY_KEY
     ?? (provider === "openai"
       ? process.env.OPENAI_API_KEY
+      : provider === "openrouter"
+      ? process.env.OPENROUTER_API_KEY
       : (provider === "gemini" || provider === "google")
       ? (process.env.GEMINI_API_KEY ?? process.env.GOOGLE_API_KEY)
       : process.env.ANTHROPIC_API_KEY)
@@ -291,7 +296,7 @@ export async function judgeContextPrompt(
 
   if (!key) {
     throw new Error(
-      "No API key for judge. Set JUDGE_API_KEY, MY_KEY, or provider-specific API key (OPENAI_API_KEY, GEMINI_API_KEY, ANTHROPIC_API_KEY)."
+      "No API key for judge. Set JUDGE_API_KEY, MY_KEY, or provider-specific API key (OPENROUTER_API_KEY, OPENAI_API_KEY, GEMINI_API_KEY, ANTHROPIC_API_KEY)."
     );
   }
 

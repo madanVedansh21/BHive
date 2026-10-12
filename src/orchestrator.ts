@@ -194,6 +194,7 @@ export async function startOrchestrator(): Promise<void> {
   const apiKey = process.env.MY_KEY
     || (normalizedProvider === "google" ? (process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY)
         : normalizedProvider === "openai" ? process.env.OPENAI_API_KEY
+        : normalizedProvider === "openrouter" ? process.env.OPENROUTER_API_KEY
         : process.env.ANTHROPIC_API_KEY);
   if (apiKey) {
     authStorage.setRuntimeApiKey(normalizedProvider, apiKey);

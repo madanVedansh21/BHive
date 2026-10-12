@@ -4,7 +4,7 @@
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Node.js](https://img.shields.io/badge/Node.js-v18%2B-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
-[![LLM Providers](https://img.shields.io/badge/LLM_Providers-Gemini_/_OpenAI_/_Anthropic-8A2BE2.svg)](#-multi-provider-llm-engine)
+[![LLM Providers](https://img.shields.io/badge/LLM_Providers-OpenRouter_/_Gemini_/_OpenAI_/_Anthropic-8A2BE2.svg)](#-multi-provider-llm-engine)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](#-contributing)
 
@@ -118,12 +118,13 @@ BHive is completely provider-agnostic. You can power your agent swarm and evalua
 
 | Provider | `MODEL_PROVIDER` | Example Model IDs (`MODEL_ID`) | Primary Env Var |
 |---|---|---|---|
+| **OpenRouter** | `openrouter` | `anthropic/claude-sonnet-4.5`, `deepseek/deepseek-chat`, `meta-llama/llama-3.3-70b-instruct` | `OPENROUTER_API_KEY` or `MY_KEY` |
 | **Google Gemini** | `gemini` | `gemini-2.5-flash`, `gemini-2.5-pro` | `GEMINI_API_KEY` or `MY_KEY` |
 | **OpenAI** | `openai` | `gpt-4o`, `gpt-4o-mini` | `OPENAI_API_KEY` or `MY_KEY` |
 | **Anthropic** | `anthropic` | `claude-3-5-sonnet-20241022`, `claude-3-5-haiku-20241022` | `ANTHROPIC_API_KEY` or `MY_KEY` |
 
 > [!TIP]
-> **Mitigating Judge Bias:** You can configure the judge to run on a different model provider than your main agents (e.g., Gemini judge for OpenAI agents) using `JUDGE_MODEL_PROVIDER` and `JUDGE_MODEL_ID` to eliminate self-preference bias.
+> **Mitigating Judge Bias:** You can configure the judge to run on a different model provider than your main agents (e.g., OpenRouter judge for OpenAI agents) using `JUDGE_MODEL_PROVIDER` and `JUDGE_MODEL_ID` to eliminate self-preference bias.
 
 ---
 
@@ -132,7 +133,7 @@ BHive is completely provider-agnostic. You can power your agent swarm and evalua
 ### 1. Prerequisites
 - **Node.js** (v18.0.0 or higher)
 - **npm** (v9 or higher)
-- An API key from **Google Gemini**, **OpenAI**, or **Anthropic**
+- An API key from **OpenRouter**, **Google Gemini**, **OpenAI**, or **Anthropic**
 - A running instance of the simulated social platform API (e.g. ICB-App running at `http://localhost:3000`)
 
 ### 2. Installation
@@ -154,11 +155,11 @@ Create a `.env` file in the project root:
 # Target social platform API
 PLATFORM_BASE_URL="http://localhost:3000"
 
-# Choose your provider: gemini | openai | anthropic
-MODEL_PROVIDER="gemini"
-MODEL_ID="gemini-2.5-flash"
+# Choose your provider: openrouter | gemini | openai | anthropic
+MODEL_PROVIDER="openrouter"
+MODEL_ID="anthropic/claude-sonnet-4.5"
 
-# Primary API Key (or use GEMINI_API_KEY / OPENAI_API_KEY / ANTHROPIC_API_KEY)
+# Primary API Key (or use OPENROUTER_API_KEY / GEMINI_API_KEY / OPENAI_API_KEY / ANTHROPIC_API_KEY)
 MY_KEY="your-api-key-here"
 
 # (Optional) Decoupled Judge Model
@@ -254,9 +255,10 @@ All options can be defined in a `.env` file or exported directly in your shell:
 | Variable | Description | Default |
 |---|---|---|
 | `PLATFORM_BASE_URL` | Base URL of the social platform REST API | `http://localhost:3000` |
-| `MODEL_PROVIDER` | LLM provider: `gemini`, `openai`, or `anthropic` | `anthropic` |
+| `MODEL_PROVIDER` | LLM provider: `openrouter`, `gemini`, `openai`, or `anthropic` | `anthropic` |
 | `MODEL_ID` | Model identifier for simulation agents | _(Required via env)_ |
 | `MY_KEY` | Universal API key fallback | _(Required via env)_ |
+| `OPENROUTER_API_KEY` | Provider key for OpenRouter | _(Optional fallback)_ |
 | `GEMINI_API_KEY` | Provider key for Google Gemini | _(Optional fallback)_ |
 | `OPENAI_API_KEY` | Provider key for OpenAI | _(Optional fallback)_ |
 | `ANTHROPIC_API_KEY` | Provider key for Anthropic | _(Optional fallback)_ |

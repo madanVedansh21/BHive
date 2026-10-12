@@ -78,6 +78,7 @@ export function createImprovementServices(): SharedServices {
   const apiKey = process.env.MY_KEY
     || (modelProvider === "google" ? (process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY)
         : modelProvider === "openai" ? process.env.OPENAI_API_KEY
+        : modelProvider === "openrouter" ? process.env.OPENROUTER_API_KEY
         : process.env.ANTHROPIC_API_KEY);
   if (apiKey) {
     authStorage.setRuntimeApiKey(modelProvider, apiKey);
