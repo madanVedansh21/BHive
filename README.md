@@ -149,7 +149,13 @@ npm install
 
 ### 3. Environment Setup
 
-Create a `.env` file in the project root:
+Copy the example configuration to `.env` and adjust your keys:
+
+```bash
+cp .env.example .env
+```
+
+Key environment variables:
 
 ```bash
 # Target social platform API
