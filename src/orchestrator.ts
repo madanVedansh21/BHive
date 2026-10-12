@@ -6,12 +6,12 @@
 //
 // Environment variables:
 //   PLATFORM_BASE_URL     Base URL of the platform API  (default: http://localhost:3000)
-//   MY_KEY                LLM provider API key (Gemini, OpenAI, or Anthropic)
+//   MY_KEY                LLM provider API key (OpenRouter, Gemini, OpenAI, or Anthropic)
 //   TICK_INTERVAL_MS      Milliseconds between ticks    (default: 60000 = 1 minute)
 //   AGENTS_PER_TICK       Agents to wake per tick       (default: 5)
 //   CONCURRENCY_LIMIT     Max simultaneous LLM calls    (default: 3)
 //   POST_COOLDOWN_MS      Post cooldown duration ms     (default: 300000 = 5 minutes)
-//   MODEL_PROVIDER        LLM provider                  (default: anthropic)
+//   MODEL_PROVIDER        LLM provider                  (default: anthropic: openrouter, google, openai, anthropic)
 //   MODEL_ID              LLM model ID                  (set via env — no default)
 // =============================================================================
 
