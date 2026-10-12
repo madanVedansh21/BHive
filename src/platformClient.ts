@@ -51,7 +51,7 @@ export interface RegisterResult {
 export async function registerAgent(
   desiredName: string,
 ): Promise<RegisterResult> {
-  return apiFetch<RegisterResult>("/api/xx69salt69xx/auth/registeragent", null, {
+  return apiFetch<RegisterResult>("/api/6de7232ba281088b/auth/registeragent", null, {
     method: "POST",
     body: JSON.stringify({ desiredName }),
   });
@@ -72,7 +72,7 @@ export interface FeedPost {
 }
 
 export async function getFeed(apiKey: string): Promise<FeedPost[]> {
-  return apiFetch<FeedPost[]>("/api/xx69salt69xx/feed", apiKey);
+  return apiFetch<FeedPost[]>("/api/6de7232ba281088b/feed", apiKey);
 }
 
 // ---------------------------------------------------------------------------
@@ -87,7 +87,7 @@ export async function getPostDetail(
   apiKey: string,
   postId: string,
 ): Promise<PostDetail> {
-  return apiFetch<PostDetail>(`/api/xx69salt69xx/posts/${postId}`, apiKey);
+  return apiFetch<PostDetail>(`/api/6de7232ba281088b/posts/${postId}`, apiKey);
 }
 
 export interface Comment {
@@ -103,7 +103,7 @@ export async function getPostComments(
   apiKey: string,
   postId: string,
 ): Promise<Comment[]> {
-  return apiFetch<Comment[]>(`/api/xx69salt69xx/posts/${postId}/comments`, apiKey);
+  return apiFetch<Comment[]>(`/api/6de7232ba281088b/posts/${postId}/comments`, apiKey);
 }
 
 export interface CreatePostResult {
@@ -116,7 +116,7 @@ export async function createPost(
   content: string,
   subcom?: string,
 ): Promise<CreatePostResult> {
-  return apiFetch<CreatePostResult>("/api/xx69salt69xx/posts", apiKey, {
+  return apiFetch<CreatePostResult>("/api/6de7232ba281088b/posts", apiKey, {
     method: "POST",
     body: JSON.stringify({ title, content, subcom }),
   });
@@ -132,7 +132,7 @@ export async function createComment(
   content: string,
   parentCommentId?: string,
 ): Promise<CreateCommentResult> {
-  return apiFetch<CreateCommentResult>(`/api/xx69salt69xx/posts/${postId}/comments`, apiKey, {
+  return apiFetch<CreateCommentResult>(`/api/6de7232ba281088b/posts/${postId}/comments`, apiKey, {
     method: "POST",
     body: JSON.stringify({ content, parentCommentId }),
   });
@@ -145,7 +145,7 @@ export async function vote(
   postId: string,
   direction: VoteDirection,
 ): Promise<void> {
-  return apiFetch<void>(`/api/xx69salt69xx/posts/${postId}/vote`, apiKey, {
+  return apiFetch<void>(`/api/6de7232ba281088b/posts/${postId}/vote`, apiKey, {
     method: "POST",
     body: JSON.stringify({ direction }),
   });
@@ -167,14 +167,14 @@ export interface PlatformNotification {
 export async function getMyNotifications(
   apiKey: string,
 ): Promise<PlatformNotification[]> {
-  return apiFetch<PlatformNotification[]>("/api/xx69salt69xx/notifications", apiKey);
+  return apiFetch<PlatformNotification[]>("/api/6de7232ba281088b/notifications", apiKey);
 }
 
 export async function ackNotification(
   apiKey: string,
   notificationId: string,
 ): Promise<void> {
-  return apiFetch<void>(`/api/xx69salt69xx/notifications/${notificationId}/ack`, apiKey, {
+  return apiFetch<void>(`/api/6de7232ba281088b/notifications/${notificationId}/ack`, apiKey, {
     method: "POST",
   });
 }
