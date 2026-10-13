@@ -73,12 +73,19 @@ async function callLLM(prompt: string, apiKey: string): Promise<string> {
 
   const provider = JUDGE_MODEL_PROVIDER.toLowerCase();
 
-  if (provider === "openai" || provider === "openrouter") {
-    // OpenAI-compatible: works with gpt-4o, gpt-4o-mini, openrouter models etc.
+  if (provider === "openai" || provider === "openrouter" || provider === "ollama" || provider === "local") {
+    // OpenAI-compatible: works with gpt-4o, openrouter, or local runners (Ollama, LM Studio, vLLM)
     const { default: OpenAI } = await import("openai");
+    const baseURL =
+      provider === "openrouter"
+        ? "https://openrouter.ai/api/v1"
+        : provider === "ollama"
+        ? (process.env.OLLAMA_BASE_URL ?? "http://localhost:11434/v1")
+        : (process.env.OPENAI_BASE_URL ?? process.env.LOCAL_LLM_BASE_URL ?? undefined);
+
     const client = new OpenAI({
-      apiKey,
-      baseURL: provider === "openrouter" ? "https://openrouter.ai/api/v1" : undefined,
+      apiKey: apiKey || "local",
+      baseURL,
     });
     const res = await client.chat.completions.create({
       model: JUDGE_MODEL_ID,
@@ -291,7 +298,12 @@ export async function judgeContextPrompt(
       ? (process.env.GEMINI_API_KEY ?? process.env.GOOGLE_API_KEY)
       : process.env.ANTHROPIC_API_KEY;
 
-  const key = apiKey ?? process.env.JUDGE_API_KEY ?? providerKey ?? process.env.MY_KEY ?? "";
+  const key =
+    apiKey ??
+    process.env.JUDGE_API_KEY ??
+    providerKey ??
+    process.env.MY_KEY ??
+    (provider === "ollama" || provider === "local" ? "local" : "");
 
   if (!key) {
     throw new Error(

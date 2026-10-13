@@ -90,9 +90,11 @@ export function createImprovementServices(): SharedServices {
   );
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const model = (getModel as any)(modelProvider, modelId) as ReturnType<typeof getModel> | null;
+  const model =
+    (modelRegistry.find(modelProvider, modelId) as ReturnType<typeof getModel> | null)
+    ?? ((getModel as any)(modelProvider, modelId) as ReturnType<typeof getModel> | null);
   if (!model) {
-    throw new Error(`Model ${rawProvider}/${modelId} not found. Check MODEL_PROVIDER and MODEL_ID env vars.`);
+    throw new Error(`Model ${rawProvider}/${modelId} not found. Check MODEL_PROVIDER and MODEL_ID env vars or define custom models in .pi/agent/models.json.`);
   }
 
   const settingsManager = SettingsManager.inMemory({

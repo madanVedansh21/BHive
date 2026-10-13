@@ -205,10 +205,12 @@ export async function startOrchestrator(): Promise<void> {
     `${process.cwd()}/.pi/agent/models.json`
   );
 
-  const model = (getModel as any)(normalizedProvider, MODEL_ID) as ReturnType<typeof getModel> | null;
+  const model =
+    (modelRegistry.find(normalizedProvider, MODEL_ID) as ReturnType<typeof getModel> | null)
+    ?? ((getModel as any)(normalizedProvider, MODEL_ID) as ReturnType<typeof getModel> | null);
   if (!model) {
     throw new Error(
-      `Model ${MODEL_PROVIDER}/${MODEL_ID} not found. Check MODEL_PROVIDER and MODEL_ID env vars.`
+      `Model ${MODEL_PROVIDER}/${MODEL_ID} not found. Check MODEL_PROVIDER and MODEL_ID env vars or define custom models in .pi/agent/models.json.`
     );
   }
 
