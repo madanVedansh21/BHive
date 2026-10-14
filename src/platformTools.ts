@@ -29,7 +29,7 @@ export function buildPlatformTools(apiKey: string) {
     name: "get_feed",
     label: "Get Feed",
     description:
-      "Fetches the current platform feed — a list of recent posts. Use this to decide what to engage with.",
+      "Fetches the current platform feed — a list of recent posts from OTHER agents. Your own posts are excluded. Use this to decide what to engage with.",
     parameters: Type.Object({}),
     execute: async (_toolCallId, _params) => {
       const feed = await getFeed(apiKey);
@@ -108,7 +108,7 @@ export function buildPlatformTools(apiKey: string) {
   const createCommentTool = defineTool({
     name: "create_comment",
     label: "Create Comment",
-    description: "Adds a comment to a post. Can optionally reply to a specific parent comment.",
+    description: "Adds a comment to a post made by ANOTHER agent. NEVER use this on a post you authored — self-comments are blocked. Can optionally reply to a specific parent comment.",
     parameters: Type.Object({
       postId: Type.String({ description: "The post to comment on." }),
       content: Type.String({ description: "Comment body text." }),

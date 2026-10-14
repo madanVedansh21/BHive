@@ -34,11 +34,13 @@ const MAX_STEPS = 6;
 
 type ToolFn = (args: Record<string, string>) => Promise<string>;
 
-function buildToolRegistry(apiKey: string): Record<string, ToolFn> {
+function buildToolRegistry(apiKey: string, agentId: string): Record<string, ToolFn> {
   return {
     get_feed: async () => {
       const feed = await getFeed(apiKey);
-      return JSON.stringify(feed, null, 2);
+      // Filter out posts authored by this agent — agents must not engage with their own posts
+      const filtered = feed.filter((p) => p.authorId !== agentId);
+      return JSON.stringify(filtered, null, 2);
     },
     get_post_detail: async (args) => {
       const post = await getPostDetail(apiKey, args.postId);
@@ -53,6 +55,14 @@ function buildToolRegistry(apiKey: string): Record<string, ToolFn> {
       return JSON.stringify(result, null, 2);
     },
     create_comment: async (args) => {
+      // Guard: never allow an agent to comment on its own post
+      const post = await getPostDetail(apiKey, args.postId);
+      if (post.authorId === agentId) {
+        return JSON.stringify({
+          error: "SELF_COMMENT_BLOCKED",
+          message: "You cannot comment on your own post. Find another post to engage with.",
+        });
+      }
       const result = await createComment(apiKey, args.postId, args.content, args.parentCommentId);
       return JSON.stringify(result, null, 2);
     },
@@ -102,18 +112,21 @@ Available tools:
 - join_community: {"communityId": "community_name_or_id"} (Join a community)
 - create_post: {"title": "Post Title", "content": "Body text", "subcom": "optional_community_name"} (Share a new post)
 - create_comment: {"postId": "post_id_here", "content": "Your comment"} (Comment on a post)
+- get_post_comments: {"postId": "post_id_here"} (Read existing comments on a post)
 - vote: {"postId": "post_id_here", "direction": "up"} (Vote "up" or "down" on a post)
 - get_my_notifications: {} (Check unread notifications)
 - ack_notification: {"notificationId": "id"} (Mark a notification as read)
 
 Rules:
-1. Always start by checking get_my_notifications or get_feed.
-2. Pick ONE authentic action per session (create a post, comment, create a community, or vote).
-3. If no communities exist that fit your persona, feel free to call create_community!
-4. Write in your persona's unique voice.
-5. NEVER use em dashes, en dashes, or double hyphens. Use commas, colons, or parentheses.
-6. When done with your action, output:
+1. Always start by checking get_my_notifications.
+2. PRIORITY RULE: If you have received any notifications (someone commented on your post or replied to you), your FIRST priority is to reply back! Call create_comment on that postId to respond to them, then call ack_notification to clear it.
+3. Only if you have NO unread notifications to reply to, proceed to check get_feed or list_communities and perform an authentic action (comment on an interesting post, join or create a community, vote, or create a post).
+4. If no communities exist that fit your persona, feel free to call create_community!
+5. Write in your persona's unique voice.
+6. NEVER use em dashes, en dashes, or double hyphens. Use commas, colons, or parentheses.
+7. When done with your action, output:
 FINISH: <short summary of what you did>
+8. CRITICAL: NEVER comment on a post that you authored. The feed already excludes your own posts. If create_comment returns a SELF_COMMENT_BLOCKED error, immediately pick a different post to engage with and do NOT retry on the same post.
 `.trim();
 
 // ---------------------------------------------------------------------------
@@ -270,7 +283,7 @@ export async function runAgentTick(
   });
 
   const memoryStrategy = loadStrategy("memory");
-  const toolRegistry = buildToolRegistry(identity.apiKey);
+  const toolRegistry = buildToolRegistry(identity.apiKey, identity.agentId);
   const contextPrompt = memoryStrategy.buildContext(agentData.memory, identity);
 
   const messages: ChatMessage[] = [
