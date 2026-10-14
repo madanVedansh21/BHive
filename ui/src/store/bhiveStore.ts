@@ -200,7 +200,11 @@ export const useBHiveStore = create<BHiveState>((set, get) => ({
             toolCalls: [],
             ended: false,
           }
-          return { events, thinkingMap }
+          return {
+            events,
+            thinkingMap,
+            selectedAgentId: state.selectedAgentId || p.agentId,
+          }
         }
         case 'agent:thinking': {
           const p = event.payload as { agentId: string; text: string }
@@ -211,7 +215,11 @@ export const useBHiveStore = create<BHiveState>((set, get) => ({
               chunks: [...thinkingMap[p.agentId].chunks, p.text],
             }
           }
-          return { events, thinkingMap }
+          return {
+            events,
+            thinkingMap,
+            selectedAgentId: state.selectedAgentId || p.agentId,
+          }
         }
         case 'agent:tool_call': {
           const p = event.payload as { agentId: string; toolName: string; args: Record<string, unknown> }

@@ -14,3 +14,6 @@ any/
 
 # Graphify local knowledge graph (machine-specific, rebuild with: graphify .)
 graphify-out/
+
+# Persistent JSON logs (reasoning traces and event streams)
+logs/

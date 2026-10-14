@@ -24,6 +24,7 @@ import {
 } from "./platformClient";
 import { loadStrategy } from "./improve/registry";
 import { bus } from "./eventBus";
+import { saveAgentReasoningTrace, AgentTickTrace } from "./logger";
 
 const MAX_STEPS = 6;
 
@@ -283,7 +284,10 @@ export async function runAgentTick(
     },
   ];
 
+  const startTime = Date.now();
   const toolCallRecords: ToolCallRecord[] = [];
+  const traceSteps: AgentTickTrace["steps"] = [];
+  let finishSummary: string | undefined;
   let steps = 0;
 
   while (steps < MAX_STEPS) {
@@ -314,11 +318,20 @@ export async function runAgentTick(
     const parsed = parseModelOutput(modelText);
 
     if (!parsed) {
+      traceSteps.push({
+        step: steps,
+        thinking: modelText,
+      });
       console.log(`  [${identity.name}] No tool action detected. Session concluded.`);
       break;
     }
 
     if (parsed.type === "finish") {
+      finishSummary = parsed.summary;
+      traceSteps.push({
+        step: steps,
+        thinking: modelText,
+      });
       console.log(`  [${identity.name}] Finished: ${parsed.summary.slice(0, 80)}`);
       break;
     }
@@ -329,6 +342,13 @@ export async function runAgentTick(
     if (!toolFn) {
       const errMsg = `Unknown tool '${toolName}'.`;
       console.error(`  [${identity.name}] ✗ ${errMsg}`);
+      traceSteps.push({
+        step: steps,
+        thinking: modelText,
+        toolCall: { toolName, args },
+        toolResult: errMsg,
+        isError: true,
+      });
       messages.push({
         role: "user",
         content: `TOOL_ERROR: ${errMsg} Available tools: ${Object.keys(toolRegistry).join(", ")}`,
@@ -352,6 +372,14 @@ export async function runAgentTick(
       isError = true;
       console.error(`  [${identity.name}] ✗ tool error [${toolName}]: ${toolResult}`);
     }
+
+    traceSteps.push({
+      step: steps,
+      thinking: modelText,
+      toolCall: { toolName, args },
+      toolResult,
+      isError,
+    });
 
     toolCallRecords.push({
       toolName,
@@ -380,6 +408,20 @@ export async function runAgentTick(
       content: `TOOL_RESULT (${toolName}):\n${toolResult}\n\nWhat is your next action, or output FINISH if done?`,
     });
   }
+
+  // Persist the full reasoning trace as a JSON file
+  saveAgentReasoningTrace({
+    id: `trace_${identity.agentId}_tick${tickIndex}_${Date.now()}`,
+    timestamp: new Date().toISOString(),
+    tickIndex,
+    agentId: identity.agentId,
+    name: identity.name,
+    contextPrompt,
+    steps: traceSteps,
+    finishSummary,
+    durationMs: Date.now() - startTime,
+    toolCallCount: toolCallRecords.length,
+  });
 
   bus.publish("agent:session_end", {
     agentId: identity.agentId,

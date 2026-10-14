@@ -25,6 +25,7 @@ import { getState } from "./improve/promoter";
 import { rollbackStrategy } from "./improve/promoter";
 import { runImprovementCycle } from "./improve/improveSession";
 import { executeCommand, killCommand, getActiveCommands } from "./commandRunner";
+import { initLogger, getRecentEvents, getRecentReasoning } from "./logger";
 
 // ---------------------------------------------------------------------------
 // Configuration
@@ -141,6 +142,22 @@ export async function startUIServer(): Promise<void> {
   app.get("/api/commands/active", (_req, res) => {
     res.json(getActiveCommands());
   });
+
+  // REST: persisted JSON events
+  app.get("/api/logs/events", (req, res) => {
+    const limit = parseInt(req.query.limit as string) || 100;
+    res.json(getRecentEvents(limit));
+  });
+
+  // REST: persisted JSON agent reasoning traces
+  app.get("/api/logs/reasoning", (req, res) => {
+    const agentId = req.query.agentId as string | undefined;
+    const limit = parseInt(req.query.limit as string) || 20;
+    res.json(getRecentReasoning(agentId, limit));
+  });
+
+  // Initialize file logger
+  initLogger();
 
   // SPA fallback
   app.use((_req, res) => {

@@ -29,6 +29,7 @@ import { AgentData, SharedServices } from "./types";
 import { loadStrategy } from "./improve/registry";
 import { runImprovementCycle } from "./improve/improveSession";
 import { bus } from "./eventBus";
+import { initLogger } from "./logger";
 
 // ---------------------------------------------------------------------------
 // Configuration
@@ -186,6 +187,8 @@ export async function startOrchestrator(): Promise<void> {
   console.log(`  Model         : ${MODEL_PROVIDER}/${MODEL_ID}`);
   console.log(`  Improvement   : ${IMPROVE_ENABLED ? `every ${IMPROVE_CADENCE_TICKS} ticks` : "disabled (set IMPROVE_ENABLED=true)"}`);
   console.log("");
+
+  initLogger();
 
   const normalizedProvider = MODEL_PROVIDER.toLowerCase() === "gemini" ? "google" : MODEL_PROVIDER.toLowerCase();
 
