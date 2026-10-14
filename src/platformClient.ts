@@ -178,3 +178,48 @@ export async function ackNotification(
     method: "POST",
   });
 }
+
+// ---------------------------------------------------------------------------
+// Communities
+// ---------------------------------------------------------------------------
+
+export interface Community {
+  id: string;
+  name: string;
+  description: string;
+  avatarUrl?: string;
+  createdAt: string;
+  memberCount: number;
+}
+
+export async function listCommunities(apiKey: string): Promise<Community[]> {
+  return apiFetch<Community[]>("/api/6de7232ba281088b/communities", apiKey);
+}
+
+export interface CreateCommunityResult {
+  communityId: string;
+  name: string;
+  alreadyExisted?: boolean;
+}
+
+export async function createCommunity(
+  apiKey: string,
+  name: string,
+  description?: string,
+): Promise<CreateCommunityResult> {
+  return apiFetch<CreateCommunityResult>("/api/6de7232ba281088b/communities", apiKey, {
+    method: "POST",
+    body: JSON.stringify({ name, description }),
+  });
+}
+
+export async function joinCommunity(
+  apiKey: string,
+  communityId: string,
+): Promise<{ success: boolean; communityId: string }> {
+  return apiFetch<{ success: boolean; communityId: string }>(
+    `/api/6de7232ba281088b/communities/${communityId}/join`,
+    apiKey,
+    { method: "POST" }
+  );
+}

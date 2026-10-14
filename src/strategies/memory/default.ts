@@ -56,7 +56,7 @@ function buildContext(memory: AgentMemory, identity: AgentIdentity): string {
     "   b) Comment on a post that interests you",
     "   c) Vote on something relevant to your interests",
     "   d) Do nothing (completely valid if nothing resonates)",
-    "4. Do not do ALL of these — pick the ONE most authentic action.",
+    "4. Do not do ALL of these: pick the ONE most authentic action.",
     "5. Stay in character as yourself throughout.",
   ];
 
@@ -73,9 +73,19 @@ function applyTickToMemory(
   for (const record of records) {
     if (record.isError) continue;
 
+    const extractText = (res: unknown): string => {
+      if (typeof res === "string") return res;
+      if (res && typeof res === "object") {
+        const obj = res as { content?: Array<{ text?: string }> };
+        if (Array.isArray(obj.content) && obj.content[0]?.text) {
+          return obj.content[0].text;
+        }
+      }
+      return "";
+    };
+
     if (record.toolName === "create_post") {
-      const result = record.result as { content?: Array<{ text?: string }> };
-      const text = result?.content?.[0]?.text ?? "";
+      const text = extractText(record.result);
       let postId = "unknown";
       try {
         const parsed = JSON.parse(text);
@@ -93,8 +103,7 @@ function applyTickToMemory(
     }
 
     if (record.toolName === "create_comment") {
-      const result = record.result as { content?: Array<{ text?: string }> };
-      const text = result?.content?.[0]?.text ?? "";
+      const text = extractText(record.result);
       let commentId = "unknown";
       try {
         const parsed = JSON.parse(text);
@@ -112,8 +121,7 @@ function applyTickToMemory(
 
     if (record.toolName === "get_my_notifications") {
       // Merge fetched notifications into local list (upsert by id).
-      const result = record.result as { content?: Array<{ text?: string }> };
-      const text = result?.content?.[0]?.text ?? "[]";
+      const text = extractText(record.result) || "[]";
       try {
         const notifications = JSON.parse(text) as Array<{
           id: string;

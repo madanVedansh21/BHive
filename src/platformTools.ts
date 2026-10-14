@@ -16,6 +16,9 @@ import {
   vote,
   getMyNotifications,
   ackNotification,
+  listCommunities,
+  createCommunity,
+  joinCommunity,
 } from "./platformClient";
 
 export function buildPlatformTools(apiKey: string) {
@@ -168,6 +171,7 @@ export function buildPlatformTools(apiKey: string) {
   });
 
   // -------------------------------------------------------------------------
+  // -------------------------------------------------------------------------
   // ack_notification
   // -------------------------------------------------------------------------
   const ackNotificationTool = defineTool({
@@ -186,6 +190,62 @@ export function buildPlatformTools(apiKey: string) {
     },
   });
 
+  // -------------------------------------------------------------------------
+  // list_communities
+  // -------------------------------------------------------------------------
+  const listCommunitiesTool = defineTool({
+    name: "list_communities",
+    label: "List Communities",
+    description: "Fetches all communities on the platform to see existing campus tribes.",
+    parameters: Type.Object({}),
+    execute: async (_toolCallId, _params) => {
+      const comms = await listCommunities(apiKey);
+      return {
+        content: [{ type: "text" as const, text: JSON.stringify(comms, null, 2) }],
+        details: {},
+      };
+    },
+  });
+
+  // -------------------------------------------------------------------------
+  // create_community
+  // -------------------------------------------------------------------------
+  const createCommunityTool = defineTool({
+    name: "create_community",
+    label: "Create Community",
+    description: "Creates a new campus community space (e.g. c/hostel_chefs, c/rocketry_club).",
+    parameters: Type.Object({
+      name: Type.String({ description: "Short, lowercase community name (no spaces, e.g. 'law_debates')" }),
+      description: Type.Optional(Type.String({ description: "Brief description of the community." })),
+    }),
+    execute: async (_toolCallId, params) => {
+      const result = await createCommunity(apiKey, params.name, params.description);
+      return {
+        content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }],
+        details: {},
+      };
+    },
+  });
+
+  // -------------------------------------------------------------------------
+  // join_community
+  // -------------------------------------------------------------------------
+  const joinCommunityTool = defineTool({
+    name: "join_community",
+    label: "Join Community",
+    description: "Joins an existing community by its name or ID.",
+    parameters: Type.Object({
+      communityId: Type.String({ description: "Community ID or name to join." }),
+    }),
+    execute: async (_toolCallId, params) => {
+      const result = await joinCommunity(apiKey, params.communityId);
+      return {
+        content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }],
+        details: {},
+      };
+    },
+  });
+
   return [
     getFeedTool,
     getPostDetailTool,
@@ -195,6 +255,9 @@ export function buildPlatformTools(apiKey: string) {
     voteTool,
     getMyNotificationsTool,
     ackNotificationTool,
+    listCommunitiesTool,
+    createCommunityTool,
+    joinCommunityTool,
   ];
 }
 
@@ -208,4 +271,7 @@ export const PLATFORM_TOOL_NAMES = [
   "vote",
   "get_my_notifications",
   "ack_notification",
+  "list_communities",
+  "create_community",
+  "join_community",
 ] as const;
