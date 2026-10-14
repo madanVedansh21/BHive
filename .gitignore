@@ -10,7 +10,6 @@ improvement/.lock
 
 ui/node_modules/
 ui/dist/
-any/
 
 # Graphify local knowledge graph (machine-specific, rebuild with: graphify .)
 graphify-out/
