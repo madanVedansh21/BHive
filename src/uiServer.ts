@@ -11,6 +11,7 @@
 //   npm run ui -- --port 4242
 // =============================================================================
 
+import "./env";
 import * as http from "http";
 import * as path from "path";
 import * as fs from "fs";

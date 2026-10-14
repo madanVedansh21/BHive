@@ -17,6 +17,7 @@
 //   ACCEPT_MARGIN          — Minimum delta to accept a proposal (default: 0.05)
 // =============================================================================
 
+import "../env";
 import { AgentMemory, AgentIdentity } from "../types";
 
 // ---------------------------------------------------------------------------
@@ -73,14 +74,22 @@ async function callLLM(prompt: string, apiKey: string): Promise<string> {
 
   const provider = JUDGE_MODEL_PROVIDER.toLowerCase();
 
-  if (provider === "openai" || provider === "openrouter" || provider === "ollama" || provider === "local") {
-    // OpenAI-compatible: works with gpt-4o, openrouter, or local runners (Ollama, LM Studio, vLLM)
+  if (
+    provider === "openai" ||
+    provider === "openrouter" ||
+    provider === "ollama" ||
+    provider === "local" ||
+    provider === "unsloth"
+  ) {
+    // OpenAI-compatible: works with gpt-4o, openrouter, or local runners (Unsloth, Ollama, LM Studio, vLLM)
     const { default: OpenAI } = await import("openai");
     const baseURL =
       provider === "openrouter"
         ? "https://openrouter.ai/api/v1"
         : provider === "ollama"
         ? (process.env.OLLAMA_BASE_URL ?? "http://localhost:11434/v1")
+        : provider === "unsloth"
+        ? (process.env.UNSLOTH_BASE_URL ?? "http://127.0.0.1:50297/v1")
         : (process.env.OPENAI_BASE_URL ?? process.env.LOCAL_LLM_BASE_URL ?? undefined);
 
     const client = new OpenAI({
@@ -294,6 +303,8 @@ export async function judgeContextPrompt(
       ? process.env.OPENAI_API_KEY
       : provider === "openrouter"
       ? process.env.OPENROUTER_API_KEY
+      : provider === "unsloth"
+      ? (process.env.UNSLOTH_API_KEY ?? process.env.MY_KEY)
       : (provider === "gemini" || provider === "google")
       ? (process.env.GEMINI_API_KEY ?? process.env.GOOGLE_API_KEY)
       : process.env.ANTHROPIC_API_KEY;
@@ -303,7 +314,7 @@ export async function judgeContextPrompt(
     process.env.JUDGE_API_KEY ??
     providerKey ??
     process.env.MY_KEY ??
-    (provider === "ollama" || provider === "local" ? "local" : "");
+    (provider === "ollama" || provider === "local" || provider === "unsloth" ? "local" : "");
 
   if (!key) {
     throw new Error(

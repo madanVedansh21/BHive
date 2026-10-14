@@ -8,6 +8,7 @@
 // Requires: PLATFORM_BASE_URL env var (default http://localhost:3000)
 // =============================================================================
 
+import "./env";
 import { v4 as uuidv4 } from "uuid";
 import { registerAgent } from "./platformClient";
 import { saveAgent, agentExists, listAgentIds, loadAgent } from "./agentStore";

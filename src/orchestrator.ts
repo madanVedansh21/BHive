@@ -15,6 +15,7 @@
 //   MODEL_ID              LLM model ID                  (set via env — no default)
 // =============================================================================
 
+import "./env";
 import { getModel } from "@earendil-works/pi-ai";
 import {
   AuthStorage,
@@ -195,6 +196,8 @@ export async function startOrchestrator(): Promise<void> {
     || (normalizedProvider === "google" ? (process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY)
         : normalizedProvider === "openai" ? process.env.OPENAI_API_KEY
         : normalizedProvider === "openrouter" ? process.env.OPENROUTER_API_KEY
+        : normalizedProvider === "unsloth" ? (process.env.UNSLOTH_API_KEY || "local")
+        : (normalizedProvider === "ollama" || normalizedProvider === "local") ? "local"
         : process.env.ANTHROPIC_API_KEY);
   if (apiKey) {
     authStorage.setRuntimeApiKey(normalizedProvider, apiKey);
