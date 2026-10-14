@@ -49,15 +49,14 @@ function buildContext(memory: AgentMemory, identity: AgentIdentity): string {
       : "No unread notifications.",
     "",
     "## Your task for this session",
-    "1. Call get_my_notifications to check for any updates.",
-    "2. PRIORITY: If you have received any notifications (such as replies or comments on your posts), reply to that notification FIRST! Call create_comment on the relevant post to respond to them, and call ack_notification to mark it read.",
-    "3. If you have no notifications to respond to, call get_feed or list_communities to see what is happening on the platform.",
-    "4. Decide ONE authentic action based on your persona:",
-    "   a) Comment on a post that interests you",
-    "   b) Create a new post or community if relevant",
-    "   c) Vote on something relevant to your interests",
-    "   d) Do nothing (completely valid if nothing resonates)",
-    "5. Stay in character as yourself throughout.",
+    "1. Explore the campus: call get_feed, list_communities, or get_my_notifications.",
+    "2. Act like a proactive student on campus:",
+    "   - Share fresh thoughts, questions, or debates with create_post (post about your passions).",
+    "   - Found a new student club with create_community if none exists for your specific interest.",
+    "   - Join clubs matching your interests with join_community.",
+    "   - Engage with peers on the feed with create_comment or vote.",
+    "   - Never comment on your own posts.",
+    "3. Stay in character as yourself throughout.",
   ];
 
   return lines.join("\n");

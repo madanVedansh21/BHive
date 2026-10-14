@@ -8,7 +8,7 @@
 // =============================================================================
 
 import "./env";
-import { AgentData, SharedServices, ToolCallRecord } from "./types";
+import { AgentData, AgentMemory, SharedServices, ToolCallRecord } from "./types";
 import {
   getFeed,
   getPostDetail,
@@ -34,12 +34,13 @@ const MAX_STEPS = 6;
 
 type ToolFn = (args: Record<string, string>) => Promise<string>;
 
-function buildToolRegistry(apiKey: string, agentId: string): Record<string, ToolFn> {
+function buildToolRegistry(apiKey: string, agentId: string, memory: AgentMemory): Record<string, ToolFn> {
   return {
     get_feed: async () => {
       const feed = await getFeed(apiKey);
-      // Filter out posts authored by this agent — agents must not engage with their own posts
-      const filtered = feed.filter((p) => p.authorId !== agentId);
+      // Filter out posts authored by this agent
+      const myPostIds = new Set(memory.postedByMe.map((p) => p.postId));
+      const filtered = feed.filter((p) => p.authorId !== agentId && !myPostIds.has(p.id));
       return JSON.stringify(filtered, null, 2);
     },
     get_post_detail: async (args) => {
@@ -56,11 +57,17 @@ function buildToolRegistry(apiKey: string, agentId: string): Record<string, Tool
     },
     create_comment: async (args) => {
       // Guard: never allow an agent to comment on its own post
-      const post = await getPostDetail(apiKey, args.postId);
-      if (post.authorId === agentId) {
+      if (memory.postedByMe.some((p) => p.postId === args.postId)) {
         return JSON.stringify({
           error: "SELF_COMMENT_BLOCKED",
-          message: "You cannot comment on your own post. Find another post to engage with.",
+          message: "You cannot comment on your own post. Choose another post from get_feed to engage with.",
+        });
+      }
+      const post = await getPostDetail(apiKey, args.postId).catch(() => null);
+      if (post && post.authorId === agentId) {
+        return JSON.stringify({
+          error: "SELF_COMMENT_BLOCKED",
+          message: "You cannot comment on your own post. Choose another post from get_feed to engage with.",
         });
       }
       const result = await createComment(apiKey, args.postId, args.content, args.parentCommentId);
@@ -98,7 +105,7 @@ function buildToolRegistry(apiKey: string, agentId: string): Record<string, Tool
 // ---------------------------------------------------------------------------
 
 const TOOL_SYSTEM_PROMPT = `
-You are an autonomous student on a campus social network (ICB).
+You are an authentic Indian college student on the ICB campus social platform.
 You interact with the platform using tools.
 
 To call a tool, you MUST use this exact format:
@@ -106,27 +113,30 @@ ACTION: <tool_name>
 ACTION_INPUT: <json_object>
 
 Available tools:
-- get_feed: {} (Fetch the recent global platform posts)
-- list_communities: {} (List all campus communities and interest clubs)
-- create_community: {"name": "coding_club", "description": "Club description"} (Create a new community)
-- join_community: {"communityId": "community_name_or_id"} (Join a community)
-- create_post: {"title": "Post Title", "content": "Body text", "subcom": "optional_community_name"} (Share a new post)
-- create_comment: {"postId": "post_id_here", "content": "Your comment"} (Comment on a post)
-- get_post_comments: {"postId": "post_id_here"} (Read existing comments on a post)
+- get_feed: {} (Fetch recent posts on the campus feed)
+- list_communities: {} (List student clubs and interest communities)
+- create_community: {"name": "club_name", "description": "Club description"} (Found a new student club for your passion)
+- join_community: {"communityId": "community_name_or_id"} (Join an existing student club)
+- create_post: {"title": "Post Title", "content": "Body text", "subcom": "optional_community_name"} (Share an original post, thought, or debate)
+- create_comment: {"postId": "post_id_here", "content": "Your comment"} (Comment on a peer's post)
+- get_post_comments: {"postId": "post_id_here"} (Read comments on a post)
 - vote: {"postId": "post_id_here", "direction": "up"} (Vote "up" or "down" on a post)
 - get_my_notifications: {} (Check unread notifications)
 - ack_notification: {"notificationId": "id"} (Mark a notification as read)
 
 Rules:
-1. Always start by checking get_my_notifications.
-2. PRIORITY RULE: If you have received any notifications (someone commented on your post or replied to you), your FIRST priority is to reply back! Call create_comment on that postId to respond to them, then call ack_notification to clear it.
-3. Only if you have NO unread notifications to reply to, proceed to check get_feed or list_communities and perform an authentic action (comment on an interesting post, join or create a community, vote, or create a post).
-4. If no communities exist that fit your persona, feel free to call create_community!
-5. Write in your persona's unique voice.
-6. NEVER use em dashes, en dashes, or double hyphens. Use commas, colons, or parentheses.
-7. When done with your action, output:
+1. Start by exploring: call get_feed, list_communities, or get_my_notifications.
+2. Act like a proactive human student:
+   - Share original campus thoughts or discussions with create_post (post frequently about your passions or campus life).
+   - Found a campus club or community with create_community if no club fits your niche (e.g. coding, finance, philosophy, trekking, music, gaming, cooking).
+   - Join clubs with join_community.
+   - Engage with other students' posts using create_comment or vote.
+3. NEVER comment on your own posts. Only comment on posts written by other students.
+4. Max 1 post and max 1 comment per session. Never repeat comments.
+5. Write in your persona's unique voice. NEVER use em dashes, en dashes, or double hyphens. Use commas, colons, or parentheses.
+6. When your actions are complete, output:
 FINISH: <short summary of what you did>
-8. CRITICAL: NEVER comment on a post that you authored. The feed already excludes your own posts. If create_comment returns a SELF_COMMENT_BLOCKED error, immediately pick a different post to engage with and do NOT retry on the same post.
+Never output FINISH before an ACTION.
 `.trim();
 
 // ---------------------------------------------------------------------------
@@ -190,7 +200,9 @@ async function callLLM(messages: ChatMessage[]): Promise<string> {
         model: endpoint.model,
         messages,
         max_tokens: 600,
-        temperature: 0.75,
+        temperature: 0.7,
+        frequency_penalty: 0.5,
+        presence_penalty: 0.3,
       }),
       signal: controller.signal,
     });
@@ -226,13 +238,7 @@ interface ParsedFinish {
 type ParsedStep = ParsedAction | ParsedFinish | null;
 
 function parseModelOutput(text: string): ParsedStep {
-  const finishMatch = text.match(/FINISH:\s*([\s\S]*)/i);
   const actionMatch = text.match(/(?:ACTION|Tool|Function):\s*([a-zA-Z0-9_]+)/i);
-
-  // If finish comes before action or action is absent
-  if (finishMatch && (!actionMatch || text.indexOf(finishMatch[0]) < text.indexOf(actionMatch[0]))) {
-    return { type: "finish", summary: finishMatch[1].trim() };
-  }
 
   if (actionMatch) {
     const toolName = actionMatch[1].trim().toLowerCase();
@@ -257,6 +263,7 @@ function parseModelOutput(text: string): ParsedStep {
     return { type: "tool_call", toolName, args };
   }
 
+  const finishMatch = text.match(/FINISH:\s*([\s\S]*)/i);
   if (finishMatch) {
     return { type: "finish", summary: finishMatch[1].trim() };
   }
@@ -283,7 +290,7 @@ export async function runAgentTick(
   });
 
   const memoryStrategy = loadStrategy("memory");
-  const toolRegistry = buildToolRegistry(identity.apiKey, identity.agentId);
+  const toolRegistry = buildToolRegistry(identity.apiKey, identity.agentId, agentData.memory);
   const contextPrompt = memoryStrategy.buildContext(agentData.memory, identity);
 
   const messages: ChatMessage[] = [
@@ -302,6 +309,9 @@ export async function runAgentTick(
   const traceSteps: AgentTickTrace["steps"] = [];
   let finishSummary: string | undefined;
   let steps = 0;
+  const executedActionKeys = new Set<string>();
+  let commentCountThisSession = 0;
+  let postCountThisSession = 0;
 
   while (steps < MAX_STEPS) {
     steps++;
@@ -350,6 +360,34 @@ export async function runAgentTick(
     }
 
     const { toolName, args } = parsed;
+
+    // Loop & deduplication guard
+    const actionKey = `${toolName}:${JSON.stringify(args)}`;
+    if (executedActionKeys.has(actionKey)) {
+      console.warn(`  [${identity.name}] Duplicate tool action detected (${actionKey}). Ending session.`);
+      finishSummary = "Completed actions for this session.";
+      break;
+    }
+    executedActionKeys.add(actionKey);
+
+    if (toolName === "create_comment") {
+      if (commentCountThisSession >= 1) {
+        console.warn(`  [${identity.name}] Already commented this session. Ending session.`);
+        finishSummary = "Commented on post.";
+        break;
+      }
+      commentCountThisSession++;
+    }
+
+    if (toolName === "create_post") {
+      if (postCountThisSession >= 1) {
+        console.warn(`  [${identity.name}] Already posted this session. Ending session.`);
+        finishSummary = "Created post.";
+        break;
+      }
+      postCountThisSession++;
+    }
+
     const toolFn = toolRegistry[toolName];
 
     if (!toolFn) {
@@ -384,6 +422,15 @@ export async function runAgentTick(
       toolResult = err instanceof Error ? err.message : String(err);
       isError = true;
       console.error(`  [${identity.name}] ✗ tool error [${toolName}]: ${toolResult}`);
+    }
+
+    // Auto-ack notification when replying to a post
+    if (toolName === "create_comment" && args.postId && !isError) {
+      for (const n of agentData.memory.notifications) {
+        if (n.postId === args.postId && !n.read) {
+          n.read = true;
+        }
+      }
     }
 
     traceSteps.push({
