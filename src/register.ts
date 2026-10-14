@@ -16,18 +16,29 @@ import { pickPersonas } from "./personas";
 import { AgentData } from "./types";
 
 function parseArgs(): { count: number } {
-  // function to parse command line args for --count : how many agents to register
+  // Handles three calling conventions:
+  //   node src/register.ts --count 15   (direct)
+  //   node src/register.ts -n 15        (short alias)
+  //   node src/register.ts 15           (npm strips --count, passes bare number)
   const args = process.argv.slice(2);
   let count = 5;
+
   for (let i = 0; i < args.length; i++) {
-    if (args[i] === "--count" && args[i + 1]) {
-      count = parseInt(args[i + 1], 10);
-      if (isNaN(count) || count < 1) {
-        console.error("--count must be a positive integer");
+    if ((args[i] === "--count" || args[i] === "-n") && args[i + 1]) {
+      const parsed = parseInt(args[i + 1], 10);
+      if (isNaN(parsed) || parsed < 1) {
+        console.error("--count / -n must be a positive integer");
         process.exit(1);
       }
+      count = parsed;
+      i++; // skip the next arg since we consumed it
+    } else if (/^\d+$/.test(args[i])) {
+      // bare number — npm stripped --count and passed only the value
+      const parsed = parseInt(args[i], 10);
+      if (!isNaN(parsed) && parsed >= 1) count = parsed;
     }
   }
+
   return { count };
 }
 
