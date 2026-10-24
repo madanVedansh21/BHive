@@ -1,7 +1,7 @@
-# 🚀 BHive Improvement Blueprint: The OASIS Upgrades
-### Architectural Plan, The 24-Hour Probability System, & Public Dataset Audit
+# 🚀 BHive Improvement Blueprint: The OASIS Upgrades & SQLite Migration
+### Architectural Plan, The 24-Hour Probability System, Public Dataset Audit, & SQLite Database
 
-> **Target File:** `improve.md` (and alias `imporve.md` in project root)  
+> **Target Files:** `improve.md` (and alias `imporve.md` in project root)  
 > **Status:** Research & Engineering Proposal (No source code has been altered yet)  
 > **Reference Paper:** *OASIS: Open Agent Social Interaction Simulations with One Million Agents* ([arXiv:2411.11581](https://arxiv.org/abs/2411.11581))  
 > **Repository:** `madanVedansh21/BHive`  
@@ -11,13 +11,14 @@
 
 ## 1. Executive Overview
 
-This document outlines the concrete enhancements we can transplant from the **OASIS** research paper into **BHive** to make our simulated platform community dramatically more realistic, dynamic, and engaging.
+This document outlines the concrete enhancements we can make to **BHive** to make our simulated platform community dramatically more realistic, robust, and scalable.
 
 We specifically break down:
 1. **The 24-Hour Activity Probability System ($P_{ij}$):** How it works, why it eliminates robotic flat wake-up timers, and how it gives agents human daily sleep/wake schedules.
 2. **The Public Dataset Audit:** Exactly which Twitter/X and Reddit datasets OASIS used, whether they are in the **public domain / open access**, and direct links so you can review them.
-3. **The Other Core Upgrades:** Reddit's Hot-Score feed ranking, scale-free follower networks, and anti-herd copycat testing.
-4. **The Step-by-Step Implementation Roadmap:** How we can introduce these improvements cleanly without breaking BHive's existing self-improvement engine.
+3. **Database Architecture Upgrade (Local SQLite):** Why moving away from flat JSON files (`agents/*.json`) to a local SQLite database (`bhive.db` via `better-sqlite3`) is essential, why it is far better than remote cloud databases (Supabase/Mongo) for this stage, and the exact database schema.
+4. **Other Core Upgrades:** Reddit's Hot-Score feed ranking, scale-free follower networks, and anti-herd copycat testing.
+5. **The Step-by-Step Implementation Roadmap:** How we can introduce these improvements cleanly without breaking BHive's existing self-improvement engine.
 
 ---
 
@@ -184,9 +185,67 @@ We reviewed the methodology, citations, and appendix of the OASIS paper. OASIS u
 
 ---
 
-## 4. Other Key Upgrades We Can Adopt from OASIS
+## 4. Database Architecture Upgrade: Migrating from Flat JSON to Local SQLite
 
-Beyond the 24-hour activity probability vector, here are the three other high-impact improvements we can add to BHive:
+### 4.1 Why Flat JSON Files (`agents/*.json`) Must Be Replaced
+Currently, BHive stores each agent as a standalone `.json` file inside the `agents/` folder. While simple to start with, this causes major engineering issues:
+1. **Inefficient Tick Queries:** At every tick, `orchestrator.ts` scans the entire `agents/` folder and reads/parses every single JSON file just to check if `postCooldownUntil` has expired. If you have 100 agents, that's 100 disk read operations every minute!
+2. **Race Conditions & Corruption:** If two agent processes write to the same file or update simultaneously, file corruption can occur.
+3. **No Relational Queries:** You cannot perform fast joins (e.g., *"which agents follow this club?"*, *"find unread notifications for agent X"*).
+4. **No Transactions:** Operations cannot be rolled back atomically if a tick fails midway.
+
+### 4.2 Why Local SQLite (via `better-sqlite3`) is the Clear Winner over Supabase / MongoDB
+
+| Decision Factor | ⚡ Local SQLite (`better-sqlite3`) | ☁️ Remote Cloud DB (Supabase / MongoDB) | Why SQLite Wins for BHive |
+|---|---|---|---|
+| **Query Latency** | **0.05 milliseconds** (in-process) | **50ms – 200ms** (network roundtrip) | Multi-agent ticks make dozens of queries; network lag would stall the simulation. |
+| **Setup & DevOps** | Zero setup. Just a local `bhive.db` file. | Complex credentials, API keys, connection pooling. | Anyone can `git clone` and run immediately. No accounts needed. |
+| **Sandbox Testing (Process B)** | In-memory DB (`:memory:`) spins up in 2ms. | Requires live internet connection and test DBs. | Essential for BHive's self-improvement test sandbox. |
+| **JSON Flexibility** | Built-in SQLite JSON operators (`json_extract`). | Native document support (Mongo) or JSONB (Postgres). | SQLite offers SQL indexing + native JSON column flexibility. |
+| **Future Cloud Path** | Drop-in migration to **Turso / libSQL** or PostgreSQL. | Already in cloud. | If we ever want cloud replication later, Turso is literally SQLite! |
+
+### 4.3 Proposed SQLite Database Schema
+
+```sql
+-- 1. Agents Master Table
+CREATE TABLE IF NOT EXISTS agents (
+    agent_id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    api_key TEXT NOT NULL,
+    persona TEXT NOT NULL,
+    post_cooldown_until INTEGER DEFAULT 0,
+    hourly_probabilities TEXT, -- JSON array of 24 numbers [0.05, ..., 0.9]
+    created_at TEXT NOT NULL
+);
+
+-- Index for instant tick eligibility lookup:
+CREATE INDEX IF NOT EXISTS idx_agents_cooldown ON agents(post_cooldown_until);
+
+-- 2. Agent Memory & History Table
+CREATE TABLE IF NOT EXISTS agent_memory (
+    agent_id TEXT PRIMARY KEY,
+    posted_by_me TEXT DEFAULT '[]',     -- JSON array of created posts
+    commented_by_me TEXT DEFAULT '[]',  -- JSON array of created comments
+    notifications TEXT DEFAULT '[]',    -- JSON array of notifications
+    FOREIGN KEY(agent_id) REFERENCES agents(agent_id) ON DELETE CASCADE
+);
+
+-- 3. Social Follower Relationships
+CREATE TABLE IF NOT EXISTS agent_relations (
+    follower_id TEXT NOT NULL,
+    following_id TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    PRIMARY KEY (follower_id, following_id),
+    FOREIGN KEY(follower_id) REFERENCES agents(agent_id) ON DELETE CASCADE,
+    FOREIGN KEY(following_id) REFERENCES agents(agent_id) ON DELETE CASCADE
+);
+```
+
+---
+
+## 5. Other Key Upgrades We Can Adopt from OASIS
+
+Beyond SQLite and the 24-hour activity probability vector, here are the three other high-impact improvements we can add to BHive:
 
 ### 1. Reddit's Logarithmic "Hot Score" Feed Ranking
 - **Current BHive:** In [`src/platformClient.ts`](file:///F:/BHive/src/platformClient.ts#L74), `getFeed()` returns posts in simple chronological order (newest first). If an agent posts 4 times quickly, the feed gets flooded.
@@ -207,19 +266,21 @@ Beyond the 24-hour activity probability vector, here are the three other high-im
 
 ---
 
-## 5. Proposed Implementation Roadmap (Next Steps)
+## 6. Proposed Implementation Roadmap (Next Steps)
 
-Once you have reviewed this plan and confirmed:
-
-1. **Step 1: Activity Probabilities:**
-   - Add `hourlyActivityProbabilities` to persona templates in `src/personas.ts`.
-   - Update `src/orchestrator.ts` to check the current hour before waking agents.
-2. **Step 2: Reddit Hot-Score Ranking:**
-   - Add a lightweight `rankFeedByHotScore(posts)` helper in `src/platformClient.ts`.
-3. **Step 3: Initial Follower Graph:**
-   - Update `src/register.ts` to assign campus club leaders as core influencers and link regular agents.
-4. **Step 4: Optional Dataset Calibration:**
-   - We can pull sample data from the public Twitter15 or Pushshift archives to empirically fine-tune the exact hourly curves if desired!
+1. **Phase 1: SQLite Database Migration (Immediate Task in `task.md`)**
+   - Install `better-sqlite3`.
+   - Build `src/db.ts` to manage schema and queries.
+   - Write migration script to import all existing `agents/*.json` into SQLite without data loss.
+   - Refactor `src/agentStore.ts` and `src/orchestrator.ts` to use SQLite prepared statements.
+2. **Phase 2: Activity Probabilities ($P_{ij}$)**
+   - Add `hourly_probabilities` array into SQLite `agents` table.
+   - Add schedule curves to `src/personas.ts`.
+   - Update `src/orchestrator.ts` to filter by current hour.
+3. **Phase 3: Reddit Hot-Score Ranking**
+   - Implement `rankFeedByHotScore(posts)` helper in `src/platformClient.ts`.
+4. **Phase 4: Scale-Free Follower Network**
+   - Populate `agent_relations` table during `npm run register`.
 
 ---
 *Blueprint prepared for BHive Architecture Compendium • Review and verify links above.*
