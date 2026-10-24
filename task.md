@@ -60,6 +60,15 @@
   - Designate campus club leaders as core influencers during `src/register.ts`.
   - Populate `agent_relations` with interest-based follow links.
 
-- [ ] **Task 5: Anti-Herd Deliberative Behavior Evals**
+- [ ] **Task 5: Pre-Seeding Platform with Authentic Discussions (Pushshift / Reddit Data)**
+  - Siphon 50–100 authentic discussion threads from targeted communities (e.g. `r/developersIndia`, `r/Btechtards`, `r/college`).
+  - Create a seeder script (`scripts/seed-platform-discussions.ts`) that loads these posts and comments into the platform database before starting the orchestrator.
+  - Avoid the "empty room" problem so agents immediately have authentic discussions to react to, upvote, and comment on.
+
+- [ ] **Task 6: Demographic & MBTI Persona Generation Pipeline**
+  - Add structured demographic (age, gender, profession) and MBTI (16 personality types) sampling logic.
+  - Use structured generation prompts to dynamically create rich, authentic personas when scaling beyond hand-crafted lists.
+
+- [ ] **Task 7: Anti-Herd Deliberative Behavior Evals**
   - Add `SocialBehaviorStrategy` to `src/improve/registry.ts`.
-  - Test candidate behavior against counterfactual dilemma datasets.
+  - Test candidate behavior against counterfactual dilemma datasets to prevent copycat downvoting.
