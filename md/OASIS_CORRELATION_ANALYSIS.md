@@ -1,11 +1,11 @@
-# 🐝 BHive vs. OASIS: In Plain English
+# 🐝 BHive vs. OASIS
 ### What They Are, How They Compare, and How We Can Use OASIS to Make BHive Better
 
 > **File:** `md/OASIS_CORRELATION_ANALYSIS.md`  
 > **Research Paper Covered:** *OASIS: Open Agent Social Interaction Simulations with One Million Agents* ([arXiv:2411.11581](https://arxiv.org/abs/2411.11581))  
 > **Authors:** CAMEL-AI Research Team (November 2024)  
 > **Our Codebase:** **BHive** (Created by Vedansh Madan)  
-> **Tone:** Simple, direct, plain English with zero unnecessary jargon.  
+
 
 ---
 
@@ -109,7 +109,7 @@ OASIS was built by AI researchers at CAMEL-AI to answer an academic question:
 
 > **The Question:** *At this point, can we improve BHive using OASIS? How can we do that? Or should we even use OASIS, or just reject it outright?*
 
-### 🎯 The Plain-English Verdict:
+### 🎯 The Verdict:
 ### **REJECT OASIS as an engine or codebase. BUT STEAL its 4 best ideas to make BHive 10x better!**
 
 Here is why:
