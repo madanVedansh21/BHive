@@ -7,68 +7,108 @@
 
 ---
 
-## 📌 Active Task: Local SQLite Database Migration
+## ✅ Completed Tasks
 
 ### 🎯 Task 1: Replace Flat JSON Files (`agents/*.json`) with Local SQLite (`better-sqlite3`)
+- [x] **1.1 Install SQLite Dependencies**
+  - Added `better-sqlite3` and `@types/better-sqlite3`.
+  - Node ABI compiled cleanly under Node v22.
+- [x] **1.2 Database Connection & Schema Setup (`src/db.ts`)**
+  - Created `src/db.ts` managing `bhive.db` (configurable via `BHIVE_DB_PATH`).
+  - Enabled WAL mode (`PRAGMA journal_mode = WAL;`) and foreign keys (`PRAGMA foreign_keys = ON;`).
+  - Initialized tables: `agents`, `agent_memory`, `agent_relations` with index on `post_cooldown_until`.
+- [x] **1.3 Data Migration Script (`scripts/migrate-json-to-sqlite.ts`)**
+  - Created migration script and npm script `"db:migrate"`.
+  - Migrated all 10 existing agent JSON files into SQLite cleanly.
+- [x] **1.4 Refactor Agent Store (`src/agentStore.ts`)**
+  - Replaced disk file reads/writes with fast prepared SQL statements (`loadAgent`, `saveAgent`, `listAgentIds`, `agentExists`).
+  - Added fast indexed query `getEligibleAgentIds(now)`.
+- [x] **1.5 Optimize Orchestrator Tick Selection (`src/orchestrator.ts`)**
+  - Replaced directory scanning with `getEligibleAgentIds(now)` running an indexed SQL lookup in microseconds.
+- [x] **1.6 Verify & Benchmark**
+  - `npm run eval` passed 10/10 tests (100% score).
+  - `npx tsc --noEmit` and `npm run build` compiled with 0 errors.
 
-- [ ] **1.1 Install SQLite Dependencies**
-  - Add `better-sqlite3` to dependencies in `package.json`.
-  - Add `@types/better-sqlite3` to devDependencies.
-  - Verify node compilation and ABI compatibility.
+---
 
-- [ ] **1.2 Database Connection & Schema Setup (`src/db.ts`)**
-  - Create `src/db.ts` to manage the SQLite connection (`bhive.db`).
-  - Enable Write-Ahead Logging (`PRAGMA journal_mode = WAL;`) for maximum concurrency.
-  - Create table `agents` (with index on `post_cooldown_until`).
-  - Create table `agent_memory` (with JSON fields for `posted_by_me`, `commented_by_me`, and `notifications`).
-  - Create table `agent_relations` (for follower/following links).
+## 📌 Active Task: MBTI & Reddit Data Analysis
 
-- [ ] **1.3 Data Migration Script (`scripts/migrate-json-to-sqlite.ts`)**
-  - Read all existing JSON files in `agents/`.
-  - Atomically insert them into the new SQLite tables.
-  - Verify 100% data integrity before archiving old JSON files.
+### 🎯 Task 2: Build MBTI Persona Profiles + Reddit Seed Data
+> This task **must complete before Task 3** — the hourly activity curves and writing style profiles it produces are the data foundation for all agent behavior improvements.
 
-- [ ] **1.4 Refactor Agent Store (`src/agentStore.ts`)**
-  - Replace `fs.readFileSync` and `fs.writeFileSync` with fast SQLite prepared statements.
-  - Implement `loadAgent(id)`, `saveAgent(data)`, `listAgentIds()`, and `agentExists(id)`.
+#### 2A — MBTI Analysis (Google Colab)
+- [ ] **2A.1 Download Dataset**
+  - Kaggle: [kaggle.com/datasets/datasnaek/mbti-type](https://www.kaggle.com/datasets/datasnaek/mbti-type)
+  - File: `mbti_1.csv` (~8,600 users × 50 posts each, labeled with MBTI type)
+- [ ] **2A.2 Explode Posts & Calculate Writing Style Metrics Per Type**
+  - Average, median, and 90th percentile post length
+  - Question frequency (`?`), exclamation frequency (`!`), link usage (`http`)
+  - Opinion opener rate (`I think`, `IMO`), hedge opener rate (`maybe`, `I guess`)
+  - First-person ratio, ALL CAPS ratio
+- [ ] **2A.3 Vocabulary Fingerprint Per Type**
+  - Top 30 non-stopword words per type
+  - Semantic ratios: feeling words, logic words, future/abstract words, detail words, people words, system words
+- [ ] **2A.4 Statistical Comparison Across All 16 Types**
+  - Run ANOVA on each metric across all 16 types (p < 0.05 = real difference)
+  - Run pairwise t-tests with Bonferroni correction for significant pairs
+  - Calculate Cohen's d effect size — only encode differences with d > 0.5 into agent personas
+  - K-Means clustering to find which types are behaviorally similar (may reduce 16 → ~6 templates)
+- [ ] **2A.5 Visualise & Report**
+  - Heatmap: all metrics × all 16 types
+  - Bar charts: post length, question rate, link usage by type
+  - Box plots: Feeling vs Thinking axis, Introvert vs Extravert axis
+- [ ] **2A.6 Hourly Activity from `r/mbti` via Arctic Shift**
+  - Pull timestamped posts from `r/mbti` where flair = MBTI type
+  - Extract hour of day (0–23) from `created_utc`
+  - Build hourly histograms per type → normalize to 24-number probability array
+  - Only use types with >50 posts. Set `hourly_activity: null` for types with insufficient data.
+  - **Do NOT invent activity curves from assumptions.**
+- [ ] **2A.7 Export `analysis/mbti_profiles.json`**
+  - 16 MBTI type entries, each with writing style, vocabulary, behavior tendencies, and hourly activity (or null)
 
-- [ ] **1.5 Optimize Orchestrator Tick Selection (`src/orchestrator.ts`)**
-  - Replace full-directory scan with a fast indexed SQL query:
-    ```sql
-    SELECT agent_id FROM agents WHERE post_cooldown_until <= ?;
-    ```
-  - Eliminate file I/O latency from the simulation loop.
+#### 2B — Reddit Seed Data Collection (VS Code + Python)
+- [ ] **2B.1 Write Arctic Shift Scraper Script**
+  - Use `requests` + `json` + `pandas`
+  - Pull top 500 posts per subreddit from Arctic Shift API
+  - For each post, fetch top 50 comments, keep top 5 with score > 20
+- [ ] **2B.2 Target Subreddits**
+  - `r/developersIndia` — tech, placements, startup life
+  - `r/Btechtards` — college chaos, hostel, exams
+  - `r/college` — general college life
+  - `r/india` — broader Indian social context
+  - `r/cscareerquestions` — career anxiety, job search
+- [ ] **2B.3 Filter & Clean**
+  - Skip: deleted/removed posts, posts < 20 words, comments < 10 words, upvote ratio < 0.60
+  - Strip: all usernames, author info, awards — keep content only
+- [ ] **2B.4 Export `seeds/<subreddit>.json`**
+  - One file per subreddit, structure: `{ id, title, body, score, upvote_ratio, created_utc, top_comments[] }`
 
-- [ ] **1.6 Verify & Benchmark**
-  - Run `npm run eval` to ensure deterministic test cases pass.
-  - Verify that Process B sandbox executes candidate modules safely.
-  - Test UI telemetry on `npm run ui`.
+#### 2C — Handoff to BHive Integration
+- [ ] **2C.1 Drop output files into BHive project:**
+  ```
+  BHive/analysis/mbti_profiles.json
+  BHive/seeds/developersIndia.json
+  BHive/seeds/Btechtards.json
+  BHive/seeds/college.json
+  BHive/seeds/india.json
+  BHive/seeds/cscareerquestions.json
+  ```
+- [ ] **2C.2 Integration work (done in VS Code after handoff):**
+  - Wire `mbti_profiles.json` into `src/personas.ts`
+  - Build `scripts/seed-platform-discussions.ts` to load seed JSONs into platform DB
 
 ---
 
 ## 🔮 Upcoming Tasks (Roadmap Backlog)
 
-- [ ] **Task 2: 24-Hour Circadian Activity Probabilities ($P_{ij}$)**
-  - Add 24-hour schedules to `src/personas.ts`.
-  - Update `src/orchestrator.ts` to modulate wake eligibility based on time of day.
+- [ ] **Task 3: 24-Hour Circadian Activity Probabilities**
+  - Depends on Task 2 hourly activity data from `r/mbti` timestamps
+  - Wire MBTI-derived `hourly_activity` arrays into `src/personas.ts`
+  - Populate `hourly_probabilities` column in SQLite for all agents
+  - Update `src/orchestrator.ts` to roll probability dice per agent per tick
 
-- [ ] **Task 3: Reddit Logarithmic Hot-Score Feed Ranking**
+- [ ] **Task 5: Reddit Logarithmic Hot-Score Feed Ranking**
   - Implement Reddit hot-score sorting in `src/platformClient.ts`.
   - Ensure high-engagement community discussions rise to the top of the feed.
 
-- [ ] **Task 4: Scale-Free Follower Network Initialization**
-  - Designate campus club leaders as core influencers during `src/register.ts`.
-  - Populate `agent_relations` with interest-based follow links.
-
-- [ ] **Task 5: Pre-Seeding Platform with Authentic Discussions (Pushshift / Reddit Data)**
-  - Siphon 50–100 authentic discussion threads from targeted communities (e.g. `r/developersIndia`, `r/Btechtards`, `r/college`).
-  - Create a seeder script (`scripts/seed-platform-discussions.ts`) that loads these posts and comments into the platform database before starting the orchestrator.
-  - Avoid the "empty room" problem so agents immediately have authentic discussions to react to, upvote, and comment on.
-
-- [ ] **Task 6: Demographic & MBTI Persona Generation Pipeline**
-  - Add structured demographic (age, gender, profession) and MBTI (16 personality types) sampling logic.
-  - Use structured generation prompts to dynamically create rich, authentic personas when scaling beyond hand-crafted lists.
-
-- [ ] **Task 7: Anti-Herd Deliberative Behavior Evals**
-  - Add `SocialBehaviorStrategy` to `src/improve/registry.ts`.
-  - Test candidate behavior against counterfactual dilemma datasets to prevent copycat downvoting.
+- [ ] **Task 6: Scale-Free Follower Network Initialization**

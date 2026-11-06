@@ -28,5 +28,6 @@
 
     "skipLibCheck": true
   },
-  "exclude": ["node_modules", "ui"]
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "ui", "scripts"]
 }

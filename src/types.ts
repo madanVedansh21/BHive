@@ -36,6 +36,8 @@ export interface AgentIdentity {
   createdAt: string; // ISO 8601
   /** Epoch ms until which this agent should not post (cooldown) */
   postCooldownUntil?: number;
+  /** 24 probabilities (one per hour 0-23) governing wake eligibility */
+  hourlyActivityProbabilities?: number[];
 }
 
 export interface AgentData {

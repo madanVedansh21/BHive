@@ -16,3 +16,9 @@ graphify-out/
 
 # Persistent JSON logs (reasoning traces and event streams)
 logs/
+
+# SQLite database files
+*.db
+*.db-wal
+*.db-shm
+

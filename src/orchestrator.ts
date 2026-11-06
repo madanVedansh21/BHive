@@ -23,7 +23,7 @@ import {
   SettingsManager,
 } from "@earendil-works/pi-coding-agent";
 import pLimit from "p-limit";
-import { loadAgent, listAgentIds, saveAgent } from "./agentStore";
+import { loadAgent, listAgentIds, saveAgent, getEligibleAgentIds } from "./agentStore";
 import { runAgentTick } from "./agentSession";
 import { AgentData, SharedServices } from "./types";
 import { loadStrategy } from "./improve/registry";
@@ -70,15 +70,7 @@ async function runTick(services: SharedServices, tickIndex: number): Promise<voi
   }
 
   const now = Date.now();
-  const eligible = allIds.filter((id) => {
-    try {
-      const agent = loadAgent(id);
-      const cooldown = agent.identity.postCooldownUntil;
-      return !cooldown || now >= cooldown;
-    } catch {
-      return false;
-    }
-  });
+  const eligible = getEligibleAgentIds(now);
 
   if (eligible.length === 0) {
     console.log("[Orchestrator] All agents are on cooldown. Skipping tick.");
