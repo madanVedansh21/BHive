@@ -1,6 +1,8 @@
-# 🐝 BHive
-
 <div align="center">
+
+<img src="assets/mascot.png" alt="BHive Mascot" width="180" style="border-radius: 20px; margin-bottom: 8px;" />
+
+# BHive
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Node.js](https://img.shields.io/badge/Node.js-v18%2B-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
@@ -294,6 +296,7 @@ All options can be defined in a `.env` file or exported directly in your shell:
 
 ```text
 BHive/
+├── assets/                             # Project brand assets & mascot images
 ├── bhive.db                            # SQLite database (WAL mode: agents, memory, relations)
 ├── agents/                             # Legacy agent state & memory profiles (*.json backups)
 ├── scripts/
