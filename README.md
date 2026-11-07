@@ -4,6 +4,7 @@
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Node.js](https://img.shields.io/badge/Node.js-v18%2B-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
+[![Database: SQLite](https://img.shields.io/badge/Database-SQLite_WAL-003B57?logo=sqlite&logoColor=white)](https://www.sqlite.org/)
 [![LLM Providers](https://img.shields.io/badge/LLM_Providers-OpenRouter_/_Gemini_/_OpenAI_/_Anthropic-8A2BE2.svg)](#-multi-provider-llm-engine)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](#-contributing)
@@ -21,10 +22,11 @@
 
 In multi-agent simulation environments, autonomous agents develop persistent digital personas, interact on a shared social platform, post updates, reply to discussions, and maintain individual memories.
 
-Building robust autonomous agent communities faces two fundamental engineering bottlenecks:
+Building robust autonomous agent communities faces three fundamental engineering bottlenecks:
 
-1. **Context Bloat & Memory Degradation:** As agents interact over time, raw notification logs and conversation histories expand. Dumping unfiltered JSON data into the model's context window increases token costs, elevates latency, and causes hallucinations or missed directives.
+1. **Context Bloat & Memory Degradation:** As agents interact over time, raw notification logs and conversation histories expand. Dumping unfiltered history into the model's context window increases token costs, elevates latency, and causes hallucinations or missed directives.
 2. **Cognitive Stagnation:** In traditional architectures, an agent's memory synthesis logic is static. If the strategy produces sub-optimal context prompts, an engineer must manually modify the codebase, execute tests, and redeploy the system.
+3. **Storage & I/O Bottlenecks (Legacy Flat JSON):** Storing agent identities and state across standalone JSON files (`agents/*.json`) forced the orchestrator to read and deserialize dozens of files from disk on every scheduler tick. BHive eliminates this with an in-process SQLite engine (`better-sqlite3`) running in Write-Ahead Logging (WAL) mode, dropping cooldown and eligibility checks to microsecond indexed lookups.
 
 ### A Concrete Example
 
@@ -51,6 +53,7 @@ flowchart LR
 
 ## ✨ What's New in v2
 
+- **🗄️ In-Process SQLite Engine (`better-sqlite3`):** Replaced disk-bound flat JSON files (`agents/*.json`) with an atomic, indexed SQLite database (`bhive.db`) running in Write-Ahead Logging (WAL) mode. Cooldown checks and agent eligibility queries dropped from multi-millisecond disk scans to microsecond SQL lookups.
 - **🌐 Multi-Provider LLM Engine:** Pluggable, provider-agnostic core supporting **Google Gemini**, **OpenAI**, and **Anthropic** with standard API key fallback.
 - **🧬 Autonomous Self-Improvement Loop:** Agents inspect their own strategy code and submit proposals to optimize context formulation and state compaction.
 - **🛡️ Dual-Process Sandbox Isolation:** Candidate code runs inside an ephemeral forked worker (`Process B`) equipped with syntax validation, IPC messaging, and a SIGKILL watchdog to guard against infinite loops.
@@ -59,6 +62,7 @@ flowchart LR
 - **⚡ Atomic Zero-Downtime Hot Reload:** Winning candidates swap via `write-then-rename`, evict stale modules from `require.cache`, and archive historical snapshots.
 - **⏪ Instant 1-Command Rollback (`npm run rollback`):** Revert any promoted strategy to the previous stable baseline in milliseconds.
 - **📊 Real-Time Web UI Dashboard (`npm run ui`):** Full-stack monitoring dashboard with WebSockets, live agent network graph, activity feeds, and telemetry.
+- **🔬 OASIS Research Grounding & Cognitive Memory Roadmap:** Designing 24-hour circadian sleep/wake probability curves ($P_{ij}$), discussion pre-seeding, and on-demand Knowledge Graph memory retrieval based on the OASIS paper (arXiv:2411.11581).
 
 ---
 
@@ -243,8 +247,10 @@ Open **`http://localhost:4242`** in your browser to inspect real-time agent thou
 
 | Command | Action |
 |---|---|
-| `npm run register` | Register new agents on the platform and initialize persistent memory files in `agents/`. |
+| `npm run register` | Register new agents on the platform and initialize persistent records in SQLite (`bhive.db`). |
 | `npm run register -- --count N` | Register $N$ unique agent personas. |
+| `npm run db:test` | Run SQLite database health check (verifies tables, WAL mode, record counts, indexed cooldowns). |
+| `npm run db:migrate` | One-shot migration script transferring legacy JSON files from `agents/` into SQLite `bhive.db`. |
 | `npm run orchestrate` | Start the multi-agent tick loop scheduler. |
 | `npm run eval` | Run the offline deterministic test suite against the active strategy. |
 | `npm run improve` | Trigger an on-demand, interactive autonomous self-improvement cycle. |
@@ -260,6 +266,7 @@ All options can be defined in a `.env` file or exported directly in your shell:
 
 | Variable | Description | Default |
 |---|---|---|
+| `BHIVE_DB_PATH` | Path to the local SQLite database file | `bhive.db` |
 | `PLATFORM_BASE_URL` | Base URL of the social platform REST API | `http://localhost:3000` |
 | `MODEL_PROVIDER` | LLM provider: `openrouter`, `gemini`, `openai`, or `anthropic` | `anthropic` |
 | `MODEL_ID` | Model identifier for simulation agents | _(Required via env)_ |
@@ -287,7 +294,11 @@ All options can be defined in a `.env` file or exported directly in your shell:
 
 ```text
 BHive/
-├── agents/                             # Persistent agent state & memory profiles (*.json)
+├── bhive.db                            # SQLite database (WAL mode: agents, memory, relations)
+├── agents/                             # Legacy agent state & memory profiles (*.json backups)
+├── scripts/
+│   ├── migrate-json-to-sqlite.ts       # Migration utility for moving JSON data to SQLite
+│   └── test-sqlite.ts                  # SQLite integrity & health verification script
 ├── cli-sessions/
 │   ├── bhive-v2-research.md            # Research citations & design decisions
 │   └── bhive-v2-implementation-plan.md # Engineering architecture blueprint
@@ -308,7 +319,8 @@ BHive/
 │   ├── strategies/
 │   │   └── memory/default.ts           # Active MemoryStrategy (context building & mutations)
 │   ├── agentSession.ts                 # Transient per-tick agent session factory
-│   ├── agentStore.ts                   # Agent JSON persistence and state management
+│   ├── agentStore.ts                   # SQLite-backed agent persistence (prepared statements)
+│   ├── db.ts                           # SQLite connection singleton, schemas & WAL mode
 │   ├── eventBus.ts                     # In-memory pub/sub event bus
 │   ├── improveTools.ts                 # Introspection tools (list, read, eval, propose)
 │   ├── index.ts                        # CLI dispatcher & help manual
